@@ -1,3 +1,4 @@
+from re import L
 import tkinter as tk
 import datetime
 import gdown
@@ -218,9 +219,9 @@ list3_files = {
     "NO_ERROR": "1BaMisKLfSq-0xyKgRCEn2WOWVtycn_aE"
 }
 
-contact_sample = { "13z1qIip3LXk1GS_nDt4IsfihEDcZJ5Fy" }
+contact_sample = { "1MuZBmMdeFZPkiOg9wHwNNpguSf_k-jrI" }
 
-confirm_sample = { "1Yr_APXPf6m4UFDmBPl3vxqGMSzZkWQ0u" }
+confirm_sample = { "1lIXTD2ryyYg9Qob0xedYemI9UGMSIqoV" }
 
 #==== HÌNH ẢNH ====
 image_data = {
@@ -245,6 +246,7 @@ def create_new_window_contact(title, content=None):
     def toggle_entry_fields():
         state = "normal" if confirm_var.get() == "not_confirmed" else "disabled"
         dept_entry.config(state=state)
+        device_entry.config(state=state)
         status_entry.config(state=state)
         desc_entry.config(state="normal" if state == "normal" else "disabled")
 
@@ -261,13 +263,17 @@ def create_new_window_contact(title, content=None):
     dept_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
     dept_entry.grid(row=0, column=1, pady=5, sticky="ew")
 
-    tk.Label(form_frame, text="Tình trạng:", font=("Arial", 11)).grid(row=1, column=0, sticky="w", pady=5)
-    status_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
-    status_entry.grid(row=1, column=1, pady=5, sticky="ew")
+    tk.Label(form_frame, text="Tên thiết bị:", font=("Arial", 11)).grid(row=1, column=0, sticky="w", pady=5)
+    device_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
+    device_entry.grid(row=1, column=1, pady=5, sticky="ew")
 
-    tk.Label(form_frame, text="Mô tả:", font=("Arial", 11)).grid(row=2, column=0, sticky="nw", pady=5)
+    tk.Label(form_frame, text="Tình trạng:", font=("Arial", 11)).grid(row=2, column=0, sticky="w", pady=5)
+    status_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
+    status_entry.grid(row=2, column=1, pady=5, sticky="ew")
+
+    tk.Label(form_frame, text="Mô tả:", font=("Arial", 11)).grid(row=3, column=0, sticky="nw", pady=5)
     desc_entry = tk.Text(form_frame, font=("Arial", 11), height=5, width=40, state="disabled")
-    desc_entry.grid(row=2, column=1, pady=5, sticky="ew")
+    desc_entry.grid(row=3, column=1, pady=5, sticky="ew")
 
     form_frame.columnconfigure(1, weight=1)
     toggle_entry_fields()
@@ -279,6 +285,7 @@ def create_new_window_contact(title, content=None):
             return
 
         dept = dept_entry.get().strip()
+        device = device_entry.get().strip()
         status = status_entry.get().strip()
         desc = desc_entry.get("1.0", tk.END).strip()
 
@@ -295,6 +302,7 @@ def create_new_window_contact(title, content=None):
                 original_line = line  # lưu dòng gốc để kiểm tra sau
 
                 line = line.replace("[title]", dept)
+                line = line.replace("[device]", device)
                 line = line.replace("[status]", status)
                 line = line.replace("[description]", desc)
 
@@ -302,6 +310,7 @@ def create_new_window_contact(title, content=None):
                 stripped_line = line.strip()
 
                 if ("[title]" in original_line and not dept) or \
+                   ("[device]" in original_line and not device) or \
                    ("[status]" in original_line and not status) or \
                    ("[description]" in original_line and not desc) or \
                    not stripped_line:
@@ -331,7 +340,7 @@ def create_new_window_contact(title, content=None):
 def create_new_window_status(title, content=None):
     new_window = tk.Toplevel(root)
     new_window.title(title)
-    new_window.geometry("600x400")
+    new_window.geometry("600x500")
 
     confirm_var = tk.StringVar(value="confirmed")
 
@@ -342,6 +351,7 @@ def create_new_window_status(title, content=None):
     def toggle_entry_fields():
         state = "normal" if confirm_var.get() == "not_confirmed" else "disabled"
         dept_entry.config(state=state)
+        device_entry.config(state=state)
         status_entry.config(state=state)
         start_time_entry.config(state=state)
         end_time_entry.config(state=state)
@@ -360,21 +370,25 @@ def create_new_window_status(title, content=None):
     dept_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
     dept_entry.grid(row=0, column=1, pady=5, sticky="ew")
 
-    tk.Label(form_frame, text="Tình trạng:", font=("Arial", 11)).grid(row=1, column=0, sticky="w", pady=5)
+    tk.Label(form_frame, text="Tên thiết bị:", font=("Arial", 11)).grid(row=1, column=0, sticky="w", pady=5)
+    device_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
+    device_entry.grid(row=1, column=1, pady=5, sticky="ew")
+
+    tk.Label(form_frame, text="Tình trạng:", font=("Arial", 11)).grid(row=2, column=0, sticky="w", pady=5)
     status_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
-    status_entry.grid(row=1, column=1, pady=5, sticky="ew")
+    status_entry.grid(row=2, column=1, pady=5, sticky="ew")
 
-    tk.Label(form_frame, text="Thời gian bắt đầu (HH:MM):", font=("Arial", 11)).grid(row=2, column=0, sticky="w", pady=5)
+    tk.Label(form_frame, text="Thời gian bắt đầu (HH:MM):", font=("Arial", 11)).grid(row=3, column=0, sticky="w", pady=5)
     start_time_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
-    start_time_entry.grid(row=2, column=1, pady=5, sticky="ew")
+    start_time_entry.grid(row=3, column=1, pady=5, sticky="ew")
 
-    tk.Label(form_frame, text="Thời gian kết thúc (HH:MM):", font=("Arial", 11)).grid(row=3, column=0, sticky="w", pady=5)
+    tk.Label(form_frame, text="Thời gian kết thúc (HH:MM):", font=("Arial", 11)).grid(row=4, column=0, sticky="w", pady=5)
     end_time_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
-    end_time_entry.grid(row=3, column=1, pady=5, sticky="ew")
+    end_time_entry.grid(row=4, column=1, pady=5, sticky="ew")
 
-    tk.Label(form_frame, text="Mô tả:", font=("Arial", 11)).grid(row=4, column=0, sticky="nw", pady=5)
+    tk.Label(form_frame, text="Mô tả:", font=("Arial", 11)).grid(row=5, column=0, sticky="nw", pady=5)
     desc_entry = tk.Text(form_frame, font=("Arial", 11), height=5, width=40, state="disabled")
-    desc_entry.grid(row=4, column=1, pady=5, sticky="ew")
+    desc_entry.grid(row=5, column=1, pady=5, sticky="ew")
 
     form_frame.columnconfigure(1, weight=1)
     toggle_entry_fields()
@@ -385,6 +399,7 @@ def create_new_window_status(title, content=None):
             return
 
         dept = dept_entry.get().strip()
+        device = device_entry.get().strip()
         status = status_entry.get().strip()
         start_time_str = start_time_entry.get().strip()
         end_time_str = end_time_entry.get().strip()
@@ -394,8 +409,8 @@ def create_new_window_status(title, content=None):
         try:
             if start_time_str and end_time_str:
                 fmt = "%H:%M"
-                start_dt = datetime.strptime(start_time_str, fmt)
-                end_dt = datetime.strptime(end_time_str, fmt)
+                start_dt = datetime.datetime.strptime(start_time_str, fmt)
+                end_dt = datetime.datetime.strptime(end_time_str, fmt)
                 diff_minutes = int((end_dt - start_dt).total_seconds() / 60)
                 if diff_minutes < 0:
                     diff_minutes += 24 * 60  # xử lý khi qua ngày
@@ -418,6 +433,7 @@ def create_new_window_status(title, content=None):
                 original_line = line
 
                 line = line.replace("[tilte]", dept)
+                line = line.replace("[device]", device)
                 line = line.replace("[status]", status)
                 line = line.replace("[time_process]", time)
                 line = line.replace("[description]", desc)
@@ -425,6 +441,7 @@ def create_new_window_status(title, content=None):
                 stripped_line = line.strip()
 
                 if ("[tilte]" in original_line and not dept) or \
+                   ("[device]" in original_line and not device) or \
                    ("[status]" in original_line and not status) or \
                    ("[time_process]" in original_line and not time) or \
                    ("[description]" in original_line and not desc) or \

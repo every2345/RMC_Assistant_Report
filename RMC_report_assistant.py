@@ -61,6 +61,19 @@ def clear_text_output():
     output_text.delete("1.0", tk.END)
     output_text.config(state='disabled')
 
+def display_text_from_file(file_path):
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            content = file.read()
+        output_text.config(state='normal')
+        output_text.delete("1.0", tk.END)
+        output_text.insert(tk.END, content)
+        output_text.config(state='disabled')
+    except Exception as e:
+        output_text.config(state='normal')
+        output_text.insert(tk.END, f"Lỗi khi đọc file: {e}")
+        output_text.config(state='disabled')
+
 # ==== HÀM GOOGLE DRIVE ====
 def download_from_drive(file_id):
 
@@ -121,8 +134,16 @@ def reset_timer():
 # ==== CHỨC NĂNG HIỂN THỊ VĂN BẢN VÀ THỜI GIAN====
 def show_text_from_drive(file_id, is_no_error=False, start_timer_flag=True):
     file_path = download_from_drive(file_id)
+
+    if not file_path or file_path.startswith("ERROR"):
+        output_text.config(state='normal')
+        output_text.delete("1.0", tk.END)
+        output_text.insert(tk.END, f"Lỗi tải file từ Google Drive: {file_path}")
+        output_text.config(state='disabled')
+        return
+
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
 
         if is_no_error:
@@ -134,17 +155,21 @@ def show_text_from_drive(file_id, is_no_error=False, start_timer_flag=True):
             current_time = delayed_time.strftime("+ Thời gian: %H:%M:%S %d-%m-%Y ") + '\n'
             lines = [current_time if '[time]' in line else line for line in lines]
 
-        content = ''.join(lines)
-    except Exception as e:
-        content = f"Không thể mở file: {e}"
+        # Ghi lại nếu cần
+        with open(file_path, 'w', encoding='utf-8', errors='ignore') as f:
+            f.writelines(lines)
 
-    output_text.config(state='normal')
-    output_text.delete("1.0", tk.END)
-    output_text.insert(tk.END, content)
-    output_text.config(state='disabled')
+        display_text_from_file(file_path)
+
+    except Exception as e:
+        output_text.config(state='normal')
+        output_text.delete("1.0", tk.END)
+        output_text.insert(tk.END, f"Lỗi khi xử lý nội dung file: {e}")
+        output_text.config(state='disabled')
 
     if start_timer_flag:
         start_timer()
+
 
 # ==== TẠO GIAO DIỆN DANH SÁCH ====
 def create_list_block(parent, list_name, items, toggle_function, state):
@@ -364,8 +389,6 @@ def create_new_window_status(title, content=None):
         start_time_str = start_time_entry.get().strip()
         end_time_str = end_time_entry.get().strip()
         desc = desc_entry.get("1.0", tk.END).strip()
-
-        from datetime import datetime
 
         # Tính thời gian xử lý
         try:

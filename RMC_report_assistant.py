@@ -1,10 +1,15 @@
 from re import L
 import tkinter as tk
+from tkinter import ttk, messagebox
+import schedule
+import threading
+import time
 import datetime
 import gdown
 import os
 from PIL import Image, ImageTk
 import pyperclip
+import json
 
 # Tạo cửa sổ chính
 root = tk.Tk()
@@ -19,7 +24,7 @@ main_frame.pack(expand=True, pady=40, padx=20)
 content_frame = tk.Frame(main_frame)
 content_frame.pack()
 
-# === Frame chứa Contact & Status bên trái ===
+# === FRAME CHỨA CONTACT, NOTE VÀ STATUS BÊN TRÁI ===
 left_button_frame = tk.Frame(content_frame)
 left_button_frame.pack(side='left', padx=10)
 
@@ -79,7 +84,7 @@ def display_text_from_file(file_path):
 def download_from_drive(file_id):
 
     # Đường dẫn cache gốc trong ổ D
-    cache_dir = r"D:\RMC_Cache"
+    cache_dir = r"D:\RMC_Assistant\Cache"
     os.makedirs(cache_dir, exist_ok=True)
 
     # Đường dẫn đến file cache
@@ -170,7 +175,6 @@ def show_text_from_drive(file_id, is_no_error=False, start_timer_flag=True):
 
     if start_timer_flag:
         start_timer()
-
 
 # ==== TẠO GIAO DIỆN DANH SÁCH ====
 def create_list_block(parent, list_name, items, toggle_function, state):
@@ -566,7 +570,351 @@ def create_new_window_image(title):
               width=15, pady=5, bg="#FF9800", fg="white").pack(pady=10)
     
     reset_timer()
-    
+
+def create_new_window_note():
+    # Thư mục lưu dữ liệu
+    DATA_DIR = r"D:\RMC_Assistant\Note"
+    os.makedirs(DATA_DIR, exist_ok=True)
+
+    # === Schedule Thread ===
+    def run_schedule():
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+
+    threading.Thread(target=run_schedule, daemon=True).start()
+
+    # === Tạo Note ===
+    def get_next_stt():
+        count = 1
+        while os.path.exists(os.path.join(DATA_DIR, f"reminders{count}.json")):
+            count += 1
+        return count
+
+    def update_stt_label():
+        current_stt.set(str(get_next_stt()))
+
+    def save_reminder_to_new_file(reminder_data):
+        stt = get_next_stt()
+        file_path = os.path.join(DATA_DIR, f"reminders{stt}.json")
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(reminder_data, f, ensure_ascii=False, indent=4)
+        update_stt_label()
+
+    def schedule_reminder(keyword, content, times, days, months, mode, file_path=None):
+        for t in times:
+            def job(t=t):
+                now = datetime.datetime.now()
+                if str(now.day) in days and str(now.month) in months:
+                    # Hiển thị thông báo đúng luồng giao diện
+                    def show_popup():
+                        messagebox.showinfo(f"Thông báo: {keyword}", f"[{t}] {content}")
+                    
+                        if mode == "1 lần" and file_path and os.path.exists(file_path):
+                            try:
+                                os.remove(file_path)
+                                print(f"Đã xóa file: {file_path}")
+                            except Exception as e:
+                                print(f"Lỗi xóa file {file_path}: {e}")
+
+                    try:
+                        note_window.after(0, show_popup)
+                    except Exception as e:
+                        print(f"Lỗi gọi after: {e}")
+                
+                    if mode == "1 lần":
+                        return schedule.CancelJob
+            schedule.every().day.at(t).do(job)
+
+    def add_reminder():
+        keyword = keyword_entry.get().strip()
+        content = content_entry.get().strip()
+        time_input = time_entry.get().strip()
+        day_input = day_entry.get().strip()
+        month_input = month_entry.get().strip()
+
+        if time_input == "08:00,12:00,14:00,...": time_input = ""
+        if day_input == "1,15,All": day_input = ""
+        if month_input == "1,6,12,All": month_input = ""
+
+        time_strs = time_input.split(",")
+
+        if day_input.strip().lower() == "all":
+            day_strs = [str(d) for d in range(1, 32)]
+        else:
+            day_strs = day_input.split(",")
+
+        if month_input.strip().lower() == "all":
+            month_strs = [str(m) for m in range(1, 13)]
+        else:
+            month_strs = month_input.split(",")
+
+        mode = intensity_var.get()
+
+        try:
+            for t in time_strs:
+                datetime.datetime.strptime(t.strip(), "%H:%M")
+            for d in day_strs:
+                d = int(d.strip())
+                assert 1 <= d <= 31
+            for m in month_strs:
+                m = int(m.strip())
+                assert 1 <= m <= 12
+        except:
+            messagebox.showerror("Lỗi", "Thời gian, ngày hoặc tháng không hợp lệ", parent=note_window)
+            return
+
+        times = [t.strip() for t in time_strs]
+        days = [d.strip() for d in day_strs]
+        months = [m.strip() for m in month_strs]
+
+        schedule_reminder(keyword, content, times, days, months, mode)
+        reminder_data = {
+            "keyword": keyword,
+            "content": content,
+            "times": times,
+            "days": days,
+            "months": months,
+            "mode": mode
+        }
+        save_reminder_to_new_file(reminder_data)
+        file_path = os.path.join(DATA_DIR, f"reminders{get_next_stt()-1}.json")
+        schedule_reminder(keyword, content, times, days, months, mode, file_path)
+        messagebox.showinfo("Thành công", f"Đã tạo note {get_next_stt()-1}.json", parent=note_window)
+
+    def set_placeholder(entry, text):
+        entry.insert(0, text)
+        entry.config(fg="gray")
+
+        def on_focus_in(event):
+            if entry.get() == text:
+                entry.delete(0, tk.END)
+                entry.config(fg="black")
+        def on_focus_out(event):
+            if not entry.get():
+                entry.insert(0, text)
+                entry.config(fg="gray")
+
+        entry.bind("<FocusIn>", on_focus_in)
+        entry.bind("<FocusOut>", on_focus_out)
+
+    def load_all_json_files():
+        if not os.path.exists(DATA_DIR):
+            messagebox.showerror("Lỗi", f"Không tìm thấy thư mục: {DATA_DIR}", parent=note_window)
+            return []
+
+        all_data = []
+        for filename in os.listdir(DATA_DIR):
+            if filename.endswith(".json"):
+                file_path = os.path.join(DATA_DIR, filename)
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        if isinstance(data, dict) and "keyword" in data:
+                            data["_file"] = file_path
+                            all_data.append(data)
+                        elif isinstance(data, list):
+                            for item in data:
+                                if isinstance(item, dict) and "keyword" in item:
+                                    item["_file"] = file_path
+                                    all_data.append(item)
+                except Exception as e:
+                    print(f"Lỗi đọc {filename}: {e}")
+        return all_data
+
+    def display_data(data_list):
+        for row in tree.get_children():
+            tree.delete(row)
+        for i, item in enumerate(data_list, start=1):
+            tree.insert("", tk.END, values=(
+                i,
+                item["keyword"],
+                item["content"],
+                ", ".join(item["times"]),
+                ", ".join(item["days"]),
+                ", ".join(item["months"]),
+                item["mode"]
+            ))
+
+    def search_data():
+        keyword = search_var.get().lower()
+        filtered = [item for item in full_data if keyword in item["keyword"].lower() or keyword in item["content"].lower()]
+        display_data(filtered)
+
+    def refresh_data():
+        global full_data
+        full_data = load_all_json_files()
+        display_data(full_data)
+
+    def delete_selected_notes():
+        global full_data
+        selected_items = tree.selection()
+        if not selected_items:
+            messagebox.showwarning("Chưa chọn", "Vui lòng chọn ít nhất một ghi chú để xóa.", parent=note_window)
+            return
+
+        confirm = messagebox.askyesno("Xác nhận", "Bạn có chắc muốn xóa các ghi chú đã chọn?", parent=note_window)
+        if not confirm:
+            return
+
+        to_delete = []
+        deleted_files = set()
+
+        for item_id in selected_items:
+            values = tree.item(item_id, "values")
+            keyword = values[1]
+            content = values[2]
+            for data_item in full_data:
+                if data_item["keyword"] == keyword and data_item["content"] == content:
+                    file_path = data_item.get("_file")
+                    if file_path and os.path.exists(file_path):
+                        deleted_files.add(file_path)
+                    to_delete.append(data_item)
+                    break
+
+        for file_path in deleted_files:
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                print(f"Lỗi khi xóa file {file_path}: {e}")
+
+        full_data = [item for item in full_data if item not in to_delete]
+        display_data(full_data)
+        messagebox.showinfo("Thành công", f"Đã xóa {len(to_delete)} ghi chú.", parent=note_window)
+
+    # === Giao diện chính ===
+    note_window = tk.Toplevel()
+    note_window.title("Trình quản lý ghi chú định kỳ")
+    note_window.geometry("1000x400")
+
+    btn_frame = tk.Frame(note_window)
+    btn_frame.pack(pady=10)
+
+    main_frame = tk.Frame(note_window)
+    main_frame.pack(fill="both", expand=True)
+
+    def show_create_note():
+        for w in main_frame.winfo_children():
+            w.destroy()
+
+        update_stt_label()
+        tk.Label(main_frame, text="STT ghi chú tiếp theo:").pack()
+        tk.Label(main_frame, textvariable=current_stt, font=("Arial", 14, "bold"), fg="blue").pack(pady=(0, 10))
+
+        global keyword_entry, content_entry, time_entry, day_entry, month_entry, intensity_var
+        tk.Label(main_frame, text="Từ khóa:").pack()
+        keyword_entry = tk.Entry(main_frame)
+        keyword_entry.pack(fill="x", padx=10)
+
+        tk.Label(main_frame, text="Nội dung:").pack()
+        content_entry = tk.Entry(main_frame)
+        content_entry.pack(fill="x", padx=10)
+
+        tk.Label(main_frame, text="Thời gian báo (HH:MM, cách nhau dấu phẩy):").pack()
+        time_entry = tk.Entry(main_frame)
+        set_placeholder(time_entry, "08:00,12:00,14:00,...")
+        time_entry.pack(fill="x", padx=10)
+
+        tk.Label(main_frame, text="Ngày báo (VD: 1,15,28):").pack()
+        day_entry = tk.Entry(main_frame)
+        set_placeholder(day_entry, "1,15 hoặc All")
+        day_entry.pack(fill="x", padx=10)
+
+        tk.Label(main_frame, text="Tháng báo (VD: 1,6,12):").pack()
+        month_entry = tk.Entry(main_frame)
+        set_placeholder(month_entry, "1,6,12 hoặc All")
+        month_entry.pack(fill="x", padx=10)
+
+        tk.Label(main_frame, text="Cường độ báo:").pack()
+        intensity_var = tk.StringVar(value="1 lần")
+        ttk.Combobox(main_frame, textvariable=intensity_var, values=["1 lần", "Cố định"]).pack(fill="x", padx=10)
+
+        tk.Button(main_frame, text="Thêm Nhắc", command=add_reminder).pack(pady=15)
+
+    def show_view_notes():
+        for w in main_frame.winfo_children():
+            w.destroy()
+
+        search_frame = tk.Frame(main_frame)
+        search_frame.pack(padx=10, pady=(10, 0), fill=tk.X)
+
+        tk.Label(search_frame, text="Tìm kiếm:").pack(side=tk.LEFT, padx=(0, 5))
+
+        global search_var, tree, full_data
+        search_var = tk.StringVar()
+        search_entry = tk.Entry(search_frame, textvariable=search_var)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        tk.Button(search_frame, text="Tìm", command=search_data,
+                  bg="#00ccff", fg="white", activebackground="#006699", activeforeground="white").pack(side=tk.LEFT, padx=5)
+
+        tk.Button(search_frame, text="Làm mới", command=refresh_data,
+                  bg="#00cc66", fg="white", activebackground="#006600", activeforeground="white").pack(side=tk.LEFT, padx=5)
+
+        tk.Button(search_frame, text="Xóa ghi chú đã chọn", command=delete_selected_notes,
+                  bg="#cc3300", fg="white", activebackground="#990000", activeforeground="white").pack(side=tk.LEFT, padx=5)
+
+        search_entry.bind("<Return>", lambda event: search_data())
+
+        table_frame = tk.Frame(main_frame)
+        table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        scrollbar = tk.Scrollbar(table_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        columns = ("STT", "Từ khóa", "Nội dung", "Thời gian", "Ngày", "Tháng", "Cường độ")
+        tree = ttk.Treeview(table_frame, columns=columns, show="headings", yscrollcommand=scrollbar.set, selectmode="extended")
+        scrollbar.config(command=tree.yview)
+        # Cài đặt tiêu đề + cột
+        tree.heading("STT", text="STT")
+        tree.column("STT", width=50, anchor="center")
+
+        tree.heading("Từ khóa", text="Từ khóa")
+        tree.column("Từ khóa", width=120, anchor="center")
+
+        tree.heading("Nội dung", text="Nội dung")
+        tree.column("Nội dung", width=200, anchor="w")
+
+        tree.heading("Thời gian", text="Thời gian")
+        tree.column("Thời gian", width=130, anchor="center")
+
+        tree.heading("Ngày", text="Ngày")
+        tree.column("Ngày", width=100, anchor="center")
+
+        tree.heading("Tháng", text="Tháng")
+        tree.column("Tháng", width=100, anchor="center")
+
+        tree.heading("Cường độ", text="Cường độ")
+        tree.column("Cường độ", width=100, anchor="center")
+
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, anchor="center")
+
+        tree.column("Nội dung", width=200, anchor="w")
+        tree.pack(fill=tk.BOTH, expand=True)
+
+        full_data = load_all_json_files()
+        display_data(full_data)
+
+    tk.Button(btn_frame, text="Tạo Note", width=20, command=show_create_note).pack(side="left", padx=10)
+    tk.Button(btn_frame, text="Xem Note", width=20, command=show_view_notes).pack(side="left", padx=10)
+
+    current_stt = tk.StringVar()
+    show_create_note()
+
+    # ==== Lên lịch lại tất cả ghi chú đã lưu ====
+    for reminder in load_all_json_files():
+        schedule_reminder(
+            reminder["keyword"],
+            reminder["content"],
+            reminder["times"],
+            reminder["days"],
+            reminder["months"],
+            reminder["mode"],
+            reminder.get("_file")  # thêm đường dẫn file
+        )
+
 # ==== HÀM BẬT TẮT DANH SÁCH ====
 def toggle_list1(state):
     if list2_state["visible"]:
@@ -674,7 +1022,6 @@ def contact_action():
     content = ""
     create_new_window_contact("Contact", content)
     reset_timer()
-
 contact_button = tk.Button(left_button_frame, text="Contact", font=("Arial", 12, "bold"),
                            bg="#2196F3", fg="white", width=10, command=lambda: contact_action())
 contact_button.pack(pady=5)
@@ -684,7 +1031,6 @@ def status_action():
     content = ""
     create_new_window_status("Status", content)
     reset_timer()
-
 status_button = tk.Button(left_button_frame, text="Status", font=("Arial", 12, "bold"),
                           bg="#FF9800", fg="white", width=10, command=lambda: status_action())
 status_button.pack(pady=5)
@@ -692,10 +1038,16 @@ status_button.pack(pady=5)
 # ==== NÚT VÀO KHO ẢNH ====
 def image_action():
     create_new_window_image("Image")
-
 image_button = tk.Button(left_button_frame, text="Image", font=("Arial", 12, "bold"),
                           bg="#7c32d1", fg="white", width=10, command=lambda: create_new_window_image("Image"))
 image_button.pack(pady=5)
+
+# ==== NÚT NOTE ====
+def note_action():
+    create_new_window_note()
+note_button = tk.Button(left_button_frame, text="Note", font=("Arial", 12, "bold"),
+                          bg="#873e23", fg="white", width=10, command=lambda: note_action())
+note_button.pack(pady=5)
 
 # Bắt đầu cập nhật đồng hồ
 update_clock()

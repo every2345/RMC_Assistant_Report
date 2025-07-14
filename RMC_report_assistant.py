@@ -1017,6 +1017,9 @@ create_list_block(button_frame, "ATQB", list1_files, toggle_list1, list1_state)
 create_list_block(button_frame, "ABDNC", list2_files, toggle_list2, list2_state)
 create_list_block(button_frame, "ANVL", list3_files, toggle_list3, list3_state)
 
+# === MỞ SẴN DANH SÁCH ATQB ===
+toggle_sub_buttons(list1_state, list1_files)
+
 # ==== NÚT COPY ====
 copy_frame = tk.Frame(main_frame)
 copy_frame.pack(fill='x', pady=(10, 0), padx=20)

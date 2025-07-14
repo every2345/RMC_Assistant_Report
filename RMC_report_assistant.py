@@ -633,22 +633,56 @@ def create_new_window_note():
         day_input = day_entry.get().strip()
         month_input = month_entry.get().strip()
 
-        if time_input == "08:00,12:00,14:00,...": time_input = ""
-        if day_input == "1,15,All": day_input = ""
-        if month_input == "1,6,12,All": month_input = ""
-
+        # ==== Chuẩn hóa thời gian ====
         time_strs = time_input.split(",")
+        normalized_times = []
+        for t in time_strs:
+            t = t.strip()
+            if not t:
+                continue
+            try:
+                h, m = map(int, t.split(":"))
+                normalized_time = f"{h:02d}:{m:02d}"
+                # Kiểm tra hợp lệ bằng datetime
+                datetime.datetime.strptime(normalized_time, "%H:%M")
+                normalized_times.append(normalized_time)
+            except:
+                messagebox.showerror("Lỗi", f"Thời gian không hợp lệ: {t}", parent=note_window)
+                return
 
+        # ==== Ngày ====
         if day_input.strip().lower() == "all":
             day_strs = [str(d) for d in range(1, 32)]
         else:
-            day_strs = day_input.split(",")
+            day_strs = []
+            for d in day_input.split(","):
+                d = d.strip()
+                if not d:
+                    continue
+                try:
+                    val = int(d)
+                    assert 1 <= val <= 31
+                    day_strs.append(str(val))
+                except:
+                    messagebox.showerror("Lỗi", f"Ngày không hợp lệ: {d}", parent=note_window)
+                    return
 
+        # ==== Tháng ====
         if month_input.strip().lower() == "all":
             month_strs = [str(m) for m in range(1, 13)]
         else:
-            month_strs = month_input.split(",")
-
+            month_strs = []
+            for m in month_input.split(","):
+                m = m.strip()
+                if not m:
+                    continue
+                try:
+                    val = int(m)
+                    assert 1 <= val <= 12
+                    month_strs.append(str(val))
+                except:
+                    messagebox.showerror("Lỗi", f"Tháng không hợp lệ: {m}", parent=note_window)
+                    return
         mode = intensity_var.get()
 
         try:
@@ -664,7 +698,7 @@ def create_new_window_note():
             messagebox.showerror("Lỗi", "Thời gian, ngày hoặc tháng không hợp lệ", parent=note_window)
             return
 
-        times = [t.strip() for t in time_strs]
+        times = normalized_times
         days = [d.strip() for d in day_strs]
         months = [m.strip() for m in month_strs]
 

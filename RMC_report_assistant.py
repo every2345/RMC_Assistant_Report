@@ -36,7 +36,7 @@ left_button_frame = tk.Frame(content_frame)
 left_button_frame.pack(side='left', padx=10)
 
 # === Text để hiển thị văn bản ===
-output_text = tk.Text(content_frame, font=("Arial", 13), width=60, height=18, wrap="word")
+output_text = tk.Text(content_frame, font=("Arial", 13), width=60, height=12, wrap="word")
 output_text.pack(side='left', pady=(10, 0), padx=10)
 output_text.config(state='disabled')
 

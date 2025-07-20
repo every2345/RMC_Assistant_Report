@@ -16,6 +16,13 @@ root = tk.Tk()
 root.title("RMC Report Assistant")
 root.geometry("1080x800")
 
+# ==== Biến toàn cục cho box màu ====
+boxes = [] # Danh sách các ô vuông
+box_colors = ["white"] * 6
+hint_label = None # Label để hiển thị gợi ý
+box_filled = [False] * 6
+first_box_filled = False
+
 # Frame chính
 main_frame = tk.Frame(root)
 main_frame.pack(expand=True, pady=40, padx=20)
@@ -41,9 +48,73 @@ button_frame.pack(side='left', padx=10)
 item_frame = tk.Frame(content_frame)
 item_frame.pack(side='left', padx=10)
 
+# ==== Frame cho NÚT COPY, CLEAR, COUNTINUE, CATCH ====
+cccc_frame = tk.Frame(main_frame)
+cccc_frame.pack(fill='x', pady=(10, 0), padx=20)
+
+# ==== THÊM ĐỒNG HỒ ĐẾM NGƯỢC ==== 
+timer_frame = tk.Frame(main_frame)
+timer_frame.pack(pady=(10, 0))
+
+timer_label = tk.Label(timer_frame, text="⏳Waiting Countdown⏳", font=("Arial", 16, "bold"), fg="blue")
+timer_label.pack()
+
+countdown_job = None
+time_left = 300  # 5 phút = 300 giây
+
 # === Biến điều khiển đồng hồ ===
 is_running = True
 
+# ==== Frame chứa các ô tô màu ====
+box_frame = tk.Frame(main_frame)
+box_frame.pack(pady=(10, 0))
+
+# Tạo 6 ô trắng trong box_frame
+for i in range(6):
+    lbl = tk.Label(box_frame, width=10, height=1, bg="white", relief="solid", borderwidth=2)
+    lbl.grid(row=0, column=i, padx=5)
+    boxes.append(lbl)
+
+# ==== TẠO hint_label nằm dưới box_frame ====
+hint_label = tk.Label(main_frame, text="Quy trình xử lý sự cố đang đợi", wraplength=800, justify="left", font=("Arial", 11), fg="black")
+hint_label.pack(pady=(10, 20))  # Giữa box_frame và nút xác nhận
+# ==== Hàm xử lý tô màu ====
+def on_category_click():
+    global box_colors
+
+    # Đếm số ô đã được tô xanh
+    green_count = box_colors.count("green")
+
+    # Gợi ý tương ứng từng bước
+    if green_count == 1:
+        update_hint("Đã ghi nhận sự cố, tiến hành báo cáo lên group chung và tiếp tục theo dõi sự cố đang diễn ra. Nếu trong vòng 5 phút, không có thông báo gì từ phía bên Site đang xảy ra lỗi lên group chung. Lập tức liên hệ vói Site theo danh sách đã cho dựa vào mức độ ưu tiên (Bấm xác nhận nếu như thông tin đã được cập nhật lên group từ bên Site). Sau khi đã liên hệ, cập nhật thông tin liên hệ lên Group chung thông qua biểu mẫu trong mục Contact.")
+    elif green_count == 2:
+        update_hint("Tiếp tục theo dõi và cập nhật sự cố liên tục. Nếu như sau một khoảng thời gian không nhận được thông tin gì từ phía bên Site kể từ thời điểm đã liên hệ với Site (1 - 2 tiếng) và đã thông tin lên group chung (). Tiến hành liên hệ lại với Site để xác minh tình trạng kiếm tra thiết bị và nguyên nhân (nếu có). Tiến hành cập nhập lại tình hình thiết bị lên nhóm group chung về tình hình khắc phục trình trạng hiện tại của thiết bị gây lỗi.")
+    elif green_count == 3:
+        update_hint("Nếu sự cố sau 1 tiếng cho đến 2 tiếng vẫn chưa được sự xử lí và cũng chưa được cập nhật lên group chung. Tiến hành liên hệ lại với số điện thoại ưu tiên để xác nhận lại sự cố, sau đó báo cáo lại tình hiên fleen group chung (Bấm 'Xác nhận' nếu sự cố đã được giải quyết trước thời điểm này).")
+    elif green_count == 4:
+        update_hint("Khi sự cố đã được giải quyết, báo cáo lên group chung để khách hàng và các bộ phận liên quan nắm thông tin (Bấm 'Xác nhận' nếu có trường hợp ngoại lệ xảy ra).")
+    elif green_count == 5:
+        update_hint("Cập nhật lên bảng Alarm List.")
+    elif green_count == 6:
+        update_hint("Toàn bộ các bước trong quy trình đã được hoàn tất, làm tốt lắm!")
+        threading.Thread(target=reset_after_delay, daemon=True).start()
+
+def reset_after_delay():
+    time.sleep(5)
+    for i in range(6):
+        box_colors[i] = "white"
+        box_filled[i] = False
+        boxes[i].config(bg="white")
+    global first_box_filled
+    first_box_filled = False
+    update_hint("Quy trình xử lý sự cố đang đợi")
+
+def update_hint(text):
+    if hint_label:
+        hint_label.config(text=text)
+
+# ==== Hàm xử lý bắt và tiếp tục đồng hồ ====
 def update_clock():
     if is_running:
         now = datetime.datetime.now().strftime("%H:%M:%S")
@@ -58,6 +129,7 @@ def continue_clock():
     global is_running
     is_running = True
 
+# ==== Hàm chức năng cho nút copy và nút clear ====
 def copy_text_to_clipboard():
     text = output_text.get("1.0", "end-1c")
     pyperclip.copy(text)
@@ -67,7 +139,7 @@ def clear_text_output():
     output_text.delete("1.0", tk.END)
     output_text.config(state='disabled')
 
-# ==== HÀM GOOGLE DRIVE ====
+# ==== HÀM tải flie từ google drive và Tạo thư mục để lưu các file được tải về từ GOOGLE DRIVE ====
 def download_from_drive(file_id):
 
     # Đường dẫn cache gốc trong ổ D
@@ -89,16 +161,7 @@ def download_from_drive(file_id):
     except Exception as e:
         return f"ERROR: {e}"
 
-# ==== THÊM ĐỒNG HỒ ĐẾM NGƯỢC ==== 
-timer_frame = tk.Frame(main_frame)
-timer_frame.pack(pady=(10, 0))
-
-timer_label = tk.Label(timer_frame, text="⏳Waiting Countdown⏳", font=("Arial", 16, "bold"), fg="blue")
-timer_label.pack()
-
-countdown_job = None
-time_left = 300  # 5 phút = 300 giây
-
+# ==== Hàm chức năng cho đồng hồ đếm ngược ====
 def update_timer():
     global time_left, countdown_job
     minutes, seconds = divmod(time_left, 60)
@@ -139,7 +202,7 @@ def show_text_from_drive(file_id, is_no_error=False, start_timer_flag=True):
             delayed_time = datetime.datetime.now() - datetime.timedelta(minutes=1)
             current_time = delayed_time.strftime("+ Thời gian: %H:%M:%S %d-%m-%Y ") + '\n'
             lines = [current_time if '[time]' in line else line for line in lines]
-
+        
         content = ''.join(lines)
     except Exception as e:
         content = f"Không thể mở file: {e}"
@@ -170,7 +233,7 @@ def create_list_block(parent, list_name, items, toggle_function, state):
     state["indicator_canvas"] = color_indicator
     state["indicator_id"] = indicator
 
-# ==== CÁC DANH SÁCH FILE ID (BẠN ĐIỀN VÀO SAU) ====
+# ==== CÁC mà đường dẫn DANH SÁCH FILE ID, hình ảnh và biểu mẫu báo cáo từ google drive ====
 list1_files = {
     "FR&FC": "17MyGAgm4zfwH0dCIoT2hS2USzqqTDpoS",
     "POWER": "1wn10nS9ca33JGPia1enBKoflimi6R4bF",
@@ -203,7 +266,6 @@ contact_sample = { "1MuZBmMdeFZPkiOg9wHwNNpguSf_k-jrI" }
 
 confirm_sample = { "1lIXTD2ryyYg9Qob0xedYemI9UGMSIqoV" }
 
-#==== HÌNH ẢNH ====
 image_data = {
     "1da-cjc1egzxy9fYY4yEqtbiFiRktzP1a": "NVL_Delica",
     "1HtmBQkPkDXjfGKxFO0RCp9JlSSx327OA": "TQB_Delica",
@@ -211,7 +273,7 @@ image_data = {
     "1m2hklLZhRYMaLioL92gf8r8lKXYaSfiz": "TQB_Bakery"
 }
 
-# ==== TẠO CỬA SỔ MỚI ====
+# ==== TẠO các CỬA SỔ MỚI ====
 def create_new_window_contact(title, content=None):
     new_window = tk.Toplevel(root)
     new_window.title(title)
@@ -309,7 +371,9 @@ def create_new_window_contact(title, content=None):
         output_text.insert(tk.END, content)
         output_text.config(state='disabled')
 
-        start_timer()
+        if fill_box(1):  # Chỉ tô ô 1 nếu ô 0 đã được tô
+            start_timer()
+
         new_window.destroy()
 
     # Nút OK
@@ -439,6 +503,8 @@ def create_new_window_status(title, content=None):
         output_text.delete("1.0", tk.END)
         output_text.insert(tk.END, content)
         output_text.config(state='disabled')
+
+        fill_box(2)  # Chỉ tô nếu ô 1 đã được tô
 
         new_window.destroy()
 
@@ -961,16 +1027,40 @@ def clear_text_output():
     output_text.config(state='disabled')
     reset_timer()
 
+def handle_first_box_fill():
+    global first_box_filled
+    if not first_box_filled:
+        boxes[0].config(bg="green")
+        box_colors[0] = "green"
+        box_filled[0] = True
+        first_box_filled = True
+        update_hint("Đã ghi nhận sự cố, tiến hành báo cáo lên group chung và tiếp tục theo dõi sự cố đang diễn ra...")
+        return True
+    return False
+
+
+def fill_box(index):
+    if index == 0 or box_filled[index - 1]:
+        boxes[index].config(bg="green")
+        box_colors[index] = "green"
+        box_filled[index] = True
+        return True
+    else:
+        messagebox.showwarning("Chưa hoàn tất bước trước", f"Vui lòng hoàn thành bước {index} trong quy trình xử lý sự cố trước khi tiếp tục.")
+        return False
+
 # ==== TẠO CÁC NÚT CHO DANH SÁCH ====
 def toggle_sub_buttons(state, item_dict):
     if not state["visible"]:
         for label, file_id in item_dict.items():
-            # Nếu là NO_ERROR thì không khởi động đếm ngược
             if "NO_ERROR" in label:
-                cmd = lambda fid=file_id: show_text_from_drive(fid, is_no_error=True, start_timer_flag=False)
+                def cmd(fid=file_id):
+                    if handle_first_box_fill():
+                        show_text_from_drive(fid, is_no_error=True, start_timer_flag=False)
             else:
-                cmd = lambda fid=file_id: show_text_from_drive(fid, start_timer_flag=True)
-
+                def cmd(fid=file_id):
+                    if handle_first_box_fill():
+                        show_text_from_drive(fid, start_timer_flag=True)
             btn = tk.Button(item_frame, text=label, font=("Arial", 12), command=cmd)
             btn.pack(anchor='w', pady=1)
             state["buttons"].append(btn)
@@ -996,12 +1086,9 @@ create_list_block(button_frame, "ANVL", list3_files, toggle_list3, list3_state)
 # === MỞ SẴN DANH SÁCH ATQB ===
 toggle_sub_buttons(list1_state, list1_files)
 
-# ==== NÚT COPY ====
-copy_frame = tk.Frame(main_frame)
-copy_frame.pack(fill='x', pady=(10, 0), padx=20)
-
+# ==== Phân bổ các nút bấm trong khung ====
 # Nhóm bên trái: Copy và Clear
-left_controls = tk.Frame(copy_frame)
+left_controls = tk.Frame(cccc_frame)
 left_controls.pack(side="left")
 
 copy_button = tk.Button(left_controls, text="Copy", font=("Arial", 10, "bold"), bg="#4CAF50", fg="white",
@@ -1013,7 +1100,7 @@ clear_button = tk.Button(left_controls, text="Clear", font=("Arial", 10, "bold")
 clear_button.pack(side="left")
 
 # Nhóm bên phải: Catch, Clock, Continue
-right_controls = tk.Frame(copy_frame)
+right_controls = tk.Frame(cccc_frame)
 right_controls.pack(side="right")
 
 # Catch (ngoài cùng bên phải)
@@ -1032,18 +1119,20 @@ continue_button.pack(side='right', padx=5)
 
 # ==== NÚT CONTACT ====
 def contact_action():
-    content = ""
-    create_new_window_contact("Contact", content)
-    reset_timer()
+    if fill_box(1):  # Chỉ tô nếu ô 0 đã tô
+        create_new_window_contact("Contact")
+        on_category_click()
+        reset_timer()
 contact_button = tk.Button(left_button_frame, text="Contact", font=("Arial", 12, "bold"),
                            bg="#2196F3", fg="white", width=10, command=lambda: contact_action())
 contact_button.pack(pady=5)
 
 # ==== NÚT STATUS ====
 def status_action():
-    content = ""
-    create_new_window_status("Status", content)
-    reset_timer()
+    if fill_box(2):  # Chỉ tô nếu ô 1 đã tô
+        create_new_window_status("Status")
+        on_category_click()
+        reset_timer()
 status_button = tk.Button(left_button_frame, text="Status", font=("Arial", 12, "bold"),
                           bg="#FF9800", fg="white", width=10, command=lambda: status_action())
 status_button.pack(pady=5)
@@ -1055,11 +1144,24 @@ image_button = tk.Button(left_button_frame, text="Image", font=("Arial", 12, "bo
                           bg="#7c32d1", fg="white", width=10, command=lambda: create_new_window_image("Image"))
 image_button.pack(pady=5)
 
+# ==== NÚT XÁC NHẬN HÀNH ĐỘNG ====
+def confirm_action():
+    for i in range(3, 6):
+        if not box_filled[i]:
+            if fill_box(i):
+                on_category_click()
+                break  # Đảm bảo chỉ tô một ô
+            else:
+                break  # Dừng lại nếu chưa đủ điều kiện
+confirm_button = tk.Button(main_frame, text="Xác nhận", font=("Arial", 12, "bold"),
+                           bg="#4CAF50", fg="white", command=confirm_action)
+confirm_button.pack(pady=10)
+
 # ==== NÚT NOTE ====
 def note_action():
     create_new_window_note()
 note_button = tk.Button(left_button_frame, text="Note", font=("Arial", 12, "bold"),
-                          bg="#873e23", fg="white", width=10, command=lambda: note_action())
+                        bg="#873e23", fg="white", width=10, command=lambda: note_action())
 note_button.pack(pady=5)
 
 # Bắt đầu cập nhật đồng hồ

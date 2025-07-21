@@ -267,10 +267,10 @@ contact_sample = { "1MuZBmMdeFZPkiOg9wHwNNpguSf_k-jrI" }
 confirm_sample = { "1lIXTD2ryyYg9Qob0xedYemI9UGMSIqoV" }
 
 image_data = {
-    "1da-cjc1egzxy9fYY4yEqtbiFiRktzP1a": "NVL_Delica",
-    "1HtmBQkPkDXjfGKxFO0RCp9JlSSx327OA": "TQB_Delica",
-    "1a8AySv4aumTqPmaHYrqlZQ94Ja8eJzqf": "TQB_Sushi",
-    "1m2hklLZhRYMaLioL92gf8r8lKXYaSfiz": "TQB_Bakery"
+    "1UEmDpu5E42ZWLFiJE1a5l55nSNkDOw_u": "NVL_Delica",
+    "1bpijvppwYiw4F_TM10xxdxh8VlXNbnMf": "TQB_Delica",
+    "1CI_BRGdB9lQn6jYhI61gIGQmj0oKIIqq": "TQB_Sushi",
+    "1ZxmaaIX3eV6Zv4HKuwcv6jOADmOFy0Wa": "TQB_Bakery"
 }
 
 # ==== TẠO các CỬA SỔ MỚI ====
@@ -553,12 +553,12 @@ def create_new_window_image(title):
     def open_large_image(img_path):
         try:
             img = Image.open(img_path)
-            img = img.resize((400, 300), Image.Resampling.LANCZOS)
-            photo = ImageTk.PhotoImage(img)
+            photo = ImageTk.PhotoImage(img)  # Không resize, giữ nguyên ảnh gốc
 
             popup = tk.Toplevel()
             popup.title("Xem ảnh lớn")
             popup.configure(bg="white")
+
             lbl = tk.Label(popup, image=photo, bg="white")
             lbl.image = photo
             lbl.pack(padx=10, pady=10)
@@ -600,9 +600,9 @@ def create_new_window_image(title):
     image_label.pack()
 
     # Buttons to show images based on category
-    delica_image = {"1da-cjc1egzxy9fYY4yEqtbiFiRktzP1a", "1HtmBQkPkDXjfGKxFO0RCp9JlSSx327OA"}
-    sushi_image = {"1a8AySv4aumTqPmaHYrqlZQ94Ja8eJzqf"}
-    bakery_image = {"1m2hklLZhRYMaLioL92gf8r8lKXYaSfiz"}
+    delica_image = {"1UEmDpu5E42ZWLFiJE1a5l55nSNkDOw_u", "1bpijvppwYiw4F_TM10xxdxh8VlXNbnMf"}
+    sushi_image = {"1CI_BRGdB9lQn6jYhI61gIGQmj0oKIIqq"}
+    bakery_image = {"1ZxmaaIX3eV6Zv4HKuwcv6jOADmOFy0Wa"}
 
     tk.Button(left_frame, text="Delica", command=lambda: show_image_by_ids(delica_image),
               width=15, pady=5, bg="#FF9800", fg="white").pack(pady=10)

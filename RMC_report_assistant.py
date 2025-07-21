@@ -513,12 +513,14 @@ def create_new_window_status(title, content=None):
     ok_button.pack(pady=10)
 
 def create_new_window_image(title):
-    def show_image_by_ids(id_set):
+    def show_image_by_ids(id_set, keyword=""):
         for widget in image_frame.winfo_children():
             widget.destroy()
 
+        filtered_ids = [fid for fid in id_set if keyword.lower() in image_data.get(fid, "").lower()]
+
         max_columns = 4
-        for idx, file_id in enumerate(id_set):
+        for idx, file_id in enumerate(filtered_ids):
             img_path = download_from_drive(file_id)
             if img_path and not str(img_path).startswith("ERROR"):
                 try:
@@ -530,30 +532,30 @@ def create_new_window_image(title):
                     row = (idx * 2) // max_columns
                     col = idx % max_columns
 
-                    # Display the thumbnail
                     label_img = tk.Label(image_frame, image=photo, bg="white", cursor="hand2")
                     label_img.image = photo
                     label_img.grid(row=row, column=col, padx=5, pady=(5, 0))
 
-                    # Add the name of the image below the thumbnail
-                    image_name = image_data.get(file_id, "Unknown Image")  # Get image name from dictionary
+                    image_name = image_data.get(file_id, "Unknown Image")
                     label_text = tk.Label(image_frame, text=image_name, bg="white", font=("Arial", 9))
                     label_text.grid(row=row + 1, column=col, padx=5, pady=(0, 10))
 
-                    # Event to open large image
                     label_img.bind("<Button-1>", lambda e, path=img_path: open_large_image(path))
 
                 except Exception as e:
                     image_label.config(text=f"Lỗi xử lý ảnh: {e}", image='', bg="white")
                     break
         else:
-            if not id_set:
-                image_label.config(text="Không có ảnh để hiển thị", image='', bg="white")
+            if not filtered_ids:
+                image_label.config(text="Không tìm thấy ảnh với từ khóa đó", image='', bg="white")
+            else:
+                image_label.config(text="", image='')
 
+    # Popup xem ảnh lớn giữ nguyên ảnh gốc
     def open_large_image(img_path):
         try:
             img = Image.open(img_path)
-            photo = ImageTk.PhotoImage(img)  # Không resize, giữ nguyên ảnh gốc
+            photo = ImageTk.PhotoImage(img)
 
             popup = tk.Toplevel()
             popup.title("Xem ảnh lớn")
@@ -563,7 +565,6 @@ def create_new_window_image(title):
             lbl.image = photo
             lbl.pack(padx=10, pady=10)
 
-            # Add Copy button under the image
             copy_button = tk.Button(popup, text="Edit Image", command=lambda: copy_image_to_clipboard(img))
             copy_button.pack(pady=10)
 
@@ -572,17 +573,16 @@ def create_new_window_image(title):
 
     def copy_image_to_clipboard(img):
         try:
-            # Attempt to copy the image to clipboard
-            # A typical way to do this involves OS-specific methods or external libraries
-            img.show()  # This will open the image in the default viewer (a workaround to copy on some systems)
-            pyperclip.copy("Image copied to clipboard!")  # This line can copy the text (not image directly)
-            print("Image copied to clipboard!")  # Log the action
+            img.show()
+            pyperclip.copy("Image copied to clipboard!")
+            print("Image copied to clipboard!")
         except Exception as e:
             print(f"Lỗi khi copy ảnh: {e}")
 
+    # ==== UI Chính ====
     new_window = tk.Toplevel()
     new_window.title(title)
-    new_window.geometry("600x400")
+    new_window.geometry("800x500")
     new_window.configure(bg="white")
 
     left_frame = tk.Frame(new_window, width=150, bg="#f0f0f0")
@@ -591,6 +591,22 @@ def create_new_window_image(title):
     right_frame = tk.Frame(new_window, bg="white")
     right_frame.pack(side="right", fill="both", expand=True)
 
+    # ======= Thanh tìm kiếm ========
+    search_frame = tk.Frame(right_frame, bg="white")
+    search_frame.pack(pady=5)
+
+    search_entry = tk.Entry(search_frame, width=30)
+    search_entry.pack(side="left", padx=5)
+
+    def on_search():
+        keyword = search_entry.get()
+        combined_set = delica_image.union(sushi_image).union(bakery_image)
+        show_image_by_ids(combined_set, keyword)
+
+    search_button = tk.Button(search_frame, text="Tìm kiếm", command=on_search, bg="#2196F3", fg="white")
+    search_button.pack(side="left")
+
+    # ======= Khu vực hình ảnh ========
     global image_frame
     image_frame = tk.Frame(right_frame, bg="white")
     image_frame.pack(expand=True)
@@ -599,7 +615,7 @@ def create_new_window_image(title):
     image_label = tk.Label(right_frame, bg="white", text="", font=("Arial", 14))
     image_label.pack()
 
-    # Buttons to show images based on category
+    # ======= Dữ liệu ảnh và nút chọn ========
     delica_image = {"1UEmDpu5E42ZWLFiJE1a5l55nSNkDOw_u", "1bpijvppwYiw4F_TM10xxdxh8VlXNbnMf"}
     sushi_image = {"1CI_BRGdB9lQn6jYhI61gIGQmj0oKIIqq"}
     bakery_image = {"1ZxmaaIX3eV6Zv4HKuwcv6jOADmOFy0Wa"}
@@ -610,7 +626,7 @@ def create_new_window_image(title):
               width=15, pady=5, bg="#FF9800", fg="white").pack(pady=10)
     tk.Button(left_frame, text="Bakery", command=lambda: show_image_by_ids(bakery_image),
               width=15, pady=5, bg="#FF9800", fg="white").pack(pady=10)
-    
+
     reset_timer()
 
 def create_new_window_note():

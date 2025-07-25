@@ -658,7 +658,7 @@ def create_new_window_note():
         return count
 
     def update_stt_label():
-        current_stt.set(str(get_next_stt()))
+        current_stt.set(str(len([f for f in os.listdir(DATA_DIR) if f.endswith(".json")])))
 
     def save_reminder_to_new_file(reminder_data):
         stt = get_next_stt()
@@ -928,7 +928,7 @@ def create_new_window_note():
             w.destroy()
 
         update_stt_label()
-        tk.Label(main_frame, text="STT ghi chú tiếp theo:").pack()
+        tk.Label(main_frame, text="Số ghi chú hiện tại:").pack()
         tk.Label(main_frame, textvariable=current_stt, font=("Arial", 14, "bold"), fg="blue").pack(pady=(0, 10))
 
         global keyword_entry, content_entry, time_entry, day_entry, month_entry, intensity_var

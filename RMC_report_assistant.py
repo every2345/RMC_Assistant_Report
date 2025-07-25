@@ -644,8 +644,16 @@ def create_new_window_note():
 
     # === Tạo Note ===
     def get_next_stt():
+        used_numbers = []
+        for filename in os.listdir(DATA_DIR):
+            if filename.startswith("reminders") and filename.endswith(".json"):
+                try:
+                    number = int(filename.replace("reminders", "").replace(".json", ""))
+                    used_numbers.append(number)
+                except:
+                    continue
         count = 1
-        while os.path.exists(os.path.join(DATA_DIR, f"reminders{count}.json")):
+        while count in used_numbers:
             count += 1
         return count
 
@@ -817,7 +825,35 @@ def create_new_window_note():
     def display_data(data_list):
         for row in tree.get_children():
             tree.delete(row)
-        for i, item in enumerate(data_list, start=1):
+
+        # Sort lại theo tên file reminders{n}.json để đảm bảo đúng STT thực tế
+        data_list_sorted = sorted(data_list, key=lambda d: int(os.path.splitext(os.path.basename(d.get("_file", "reminders0.json")))[0].replace("reminders", "")))
+
+        now = datetime.datetime.now()
+        for i, item in enumerate(data_list_sorted, start=1):
+            mode = item.get("mode", "")
+            times = item.get("times", [])
+            days = item.get("days", [])
+            months = item.get("months", [])
+
+            tag = ""
+            if mode == "1 lần":
+                expired = True
+                for m in months:
+                    for d in days:
+                        for t in times:
+                            try:
+                                h, mn = map(int, t.split(":"))
+                                scheduled_time = datetime.datetime(year=now.year, month=int(m), day=int(d), hour=h, minute=mn)
+                                if scheduled_time >= now:
+                                    expired = False
+                                    break
+                            except:
+                                pass
+                tag = "one_time_valid" if not expired else "one_time_expired"
+            else:
+                tag = "recurring"
+
             tree.insert("", tk.END, values=(
                 i,
                 item["keyword"],
@@ -825,8 +861,8 @@ def create_new_window_note():
                 ", ".join(item["times"]),
                 ", ".join(item["days"]),
                 ", ".join(item["months"]),
-                item["mode"]
-            ))
+                mode
+            ), tags=(tag,))
 
     def search_data():
         keyword = search_var.get().lower()
@@ -837,6 +873,8 @@ def create_new_window_note():
         global full_data
         full_data = load_all_json_files()
         display_data(full_data)
+        update_stt_label()  # cập nhật STT ghi chú tiếp theo
+
 
     def delete_selected_notes():
         global full_data
@@ -956,6 +994,9 @@ def create_new_window_note():
 
         columns = ("STT", "Từ khóa", "Nội dung", "Thời gian", "Ngày", "Tháng", "Cường độ")
         tree = ttk.Treeview(table_frame, columns=columns, show="headings", yscrollcommand=scrollbar.set, selectmode="extended")
+        tree.tag_configure("one_time_valid", background="#d4fcd4")     # xanh lá
+        tree.tag_configure("one_time_expired", background="#f8d4d4")   # đỏ
+        tree.tag_configure("recurring", background="#d4eaff")          # xanh da trời
         scrollbar.config(command=tree.yview)
         # Cài đặt tiêu đề + cột
         tree.heading("STT", text="STT")

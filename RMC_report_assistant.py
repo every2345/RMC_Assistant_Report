@@ -1054,7 +1054,6 @@ def handle_first_box_fill():
         return True
     return False
 
-
 def fill_box(index):
     if index == 0 or box_filled[index - 1]:
         boxes[index].config(bg="green")
@@ -1071,12 +1070,12 @@ def toggle_sub_buttons(state, item_dict):
         for label, file_id in item_dict.items():
             if "NO_ERROR" in label:
                 def cmd(fid=file_id):
-                    if handle_first_box_fill():
-                        show_text_from_drive(fid, is_no_error=True, start_timer_flag=False)
+                    handle_first_box_fill()
+                    show_text_from_drive(fid, is_no_error=True, start_timer_flag=False)
             else:
                 def cmd(fid=file_id):
-                    if handle_first_box_fill():
-                        show_text_from_drive(fid, start_timer_flag=True)
+                    handle_first_box_fill()
+                    show_text_from_drive(fid, start_timer_flag=True)
             btn = tk.Button(item_frame, text=label, font=("Arial", 12), command=cmd)
             btn.pack(anchor='w', pady=1)
             state["buttons"].append(btn)

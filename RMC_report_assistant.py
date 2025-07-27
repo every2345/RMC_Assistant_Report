@@ -1,6 +1,7 @@
 from re import L
 import tkinter as tk
 from tkinter import ttk, messagebox
+from unicodedata import category
 import schedule
 import threading
 import time
@@ -78,6 +79,7 @@ for i in range(6):
 # ==== TẠO hint_label nằm dưới box_frame ====
 hint_label = tk.Label(main_frame, text="Quy trình xử lý sự cố đang đợi", wraplength=800, justify="left", font=("Arial", 11), fg="black")
 hint_label.pack(pady=(10, 20))  # Giữa box_frame và nút xác nhận
+
 # ==== Hàm xử lý tô màu ====
 def on_category_click():
     global box_colors
@@ -273,6 +275,109 @@ image_data = {
     "1ZxmaaIX3eV6Zv4HKuwcv6jOADmOFy0Wa": "TQB_Bakery"
 }
 
+# ==== DỮ LIỆU ĐƯỢC TỔ CHỨC THEO KHU VỰC ====
+category_images = {
+    "ANVL": {
+        "Sensor": {
+            "1060jAOW78jUlcNTExPDveyG7sDN7gn3i": "KEF&KSF",
+            "1kVfjuOyBmyz7y6vUG_kgRl6mf1Fck8K1": "DELICA",
+            "10zRy0yQaT0UAqDA2lFCBflYBNTI3V_hB": "POWERSUPPLY1",
+            "1ZwolrlhT4ulfuC5SdBdh5crxhR-1jWQ9": "FR&FC",
+            "17Pv5XTXWSzU0W3JMWCehw4qhjWet7g0X": "POWERSUPPLY2",
+            "1SFb0QQ84qB8q02shYxgGZWp0nhO4g4FQ": "POWERSUPPLY3"
+        },
+        "Layout": {
+            "1moC360oUYfcZ8LNIojpdwDzHh79qmimX": "Layout_ANVL"
+        },
+        "Gateway": {
+            "1aZE5oP7ngAyX54fOv0Exm4vDqG7lE-B9": "Gateway_1",
+            "1CuqkedbFiK0I8EFPqs_i7b_-4oFWx27_": "Gateway_2"
+        }
+    },
+    "BDNC": {
+        "Sensor": {
+            "14CrZrrWMdVDyV_rrGge2xWTWGOhXjX7Q": "AHU",
+            "1nr9IRbU231jS8g32JTpNWzmOlKgMHdG3": "FAN&VRV",
+            "1f2iiBlHBj4lQbNbVS04FLEzbkpnzXBIV": "FR&FC",
+            "12wX89FsnvxTz1rTwmtfIOyYe2QnHjaLm": "LPG",
+            "1Wdr23jmblvu9aveBGIUo_lfJOPUxR8Ou": "POWERSUPPLY"
+        },
+        "Layout": {
+            "1tOoW_QYZ8Ns44KWRbOnolT9aKor-Qf7q": "Layout_BDNC"
+        },
+        "Gateway": {
+            "1VHjuk-_5ZIb53o0e_gZBUHo5bDngU590": "Gateway_BDNC"
+        }
+    },
+    "TQB": {
+        "Sensor": {
+            "1FrMbcaBlT5P2XEsC4QE7E9fwUtocH9W4": "BAKERY",
+            "1AiLD7HoCbgjt2VcmH1WUltPofGk4Fiey": "DELICA",
+            "1DQCRERO-to6rtB9dyBFc6GMTXhxNb579": "FAN",
+            "1RIl1cYtaQndVN-PRp2GvKs_Apbnvfxxv": "FR&FC",
+            "1MSqa8FTV65vfdtdd9r0nw4oYk_PtC3H3": "SUSHI",
+            "1cgGQZ6pWpkqFFgdlRysas6Sg3ufUWlNZ": "POWERSUPPLY"
+        },
+        "Layout": {
+            "1OtfrUIaf4CmL3Slyf2ZspItNUFuDsbDC": "Layout_TQB"
+        },
+        "Gateway": {
+            "1G5ABGCJw3OXJZOq42gSG3D3FXzjPWbOk": "Gateway_TQB"
+        }
+    }
+}
+
+# ==== DỮ LIỆU ĐƯỢC TỔ CHỨC THEO KHU VỰC ====
+category_images = {
+    "ANVL": {
+        "Sensor": {
+            "1060jAOW78jUlcNTExPDveyG7sDN7gn3i": "KEF&KSF",
+            "1kVfjuOyBmyz7y6vUG_kgRl6mf1Fck8K1": "DELICA",
+            "10zRy0yQaT0UAqDA2lFCBflYBNTI3V_hB": "POWERSUPPLY1",
+            "1ZwolrlhT4ulfuC5SdBdh5crxhR-1jWQ9": "FR&FC",
+            "17Pv5XTXWSzU0W3JMWCehw4qhjWet7g0X": "POWERSUPPLY2",
+            "1SFb0QQ84qB8q02shYxgGZWp0nhO4g4FQ": "POWERSUPPLY3"
+        },
+        "Layout": {
+            "1moC360oUYfcZ8LNIojpdwDzHh79qmimX": "Layout_ANVL"
+        },
+        "Gateway": {
+            "1aZE5oP7ngAyX54fOv0Exm4vDqG7lE-B9": "Gateway_1",
+            "1CuqkedbFiK0I8EFPqs_i7b_-4oFWx27_": "Gateway_2"
+        }
+    },
+    "BDNC": {
+        "Sensor": {
+            "14CrZrrWMdVDyV_rrGge2xWTWGOhXjX7Q": "AHU",
+            "1nr9IRbU231jS8g32JTpNWzmOlKgMHdG3": "FAN&VRV",
+            "1f2iiBlHBj4lQbNbVS04FLEzbkpnzXBIV": "FR&FC",
+            "12wX89FsnvxTz1rTwmtfIOyYe2QnHjaLm": "LPG",
+            "1Wdr23jmblvu9aveBGIUo_lfJOPUxR8Ou": "POWERSUPPLY"
+        },
+        "Layout": {
+            "1tOoW_QYZ8Ns44KWRbOnolT9aKor-Qf7q": "Layout_BDNC"
+        },
+        "Gateway": {
+            "1VHjuk-_5ZIb53o0e_gZBUHo5bDngU590": "Gateway_BDNC"
+        }
+    },
+    "TQB": {
+        "Sensor": {
+            "1FrMbcaBlT5P2XEsC4QE7E9fwUtocH9W4": "BAKERY",
+            "1AiLD7HoCbgjt2VcmH1WUltPofGk4Fiey": "DELICA",
+            "1DQCRERO-to6rtB9dyBFc6GMTXhxNb579": "FAN",
+            "1RIl1cYtaQndVN-PRp2GvKs_Apbnvfxxv": "FR&FC",
+            "1MSqa8FTV65vfdtdd9r0nw4oYk_PtC3H3": "SUSHI",
+            "1cgGQZ6pWpkqFFgdlRysas6Sg3ufUWlNZ": "POWERSUPPLY"
+        },
+        "Layout": {
+            "1OtfrUIaf4CmL3Slyf2ZspItNUFuDsbDC": "Layout_TQB"
+        },
+        "Gateway": {
+            "1G5ABGCJw3OXJZOq42gSG3D3FXzjPWbOk": "Gateway_TQB"
+        }
+    }
+}
 # ==== TẠO các CỬA SỔ MỚI ====
 def create_new_window_contact(title, content=None):
     new_window = tk.Toplevel(root)
@@ -1048,6 +1153,143 @@ def create_new_window_note():
             reminder.get("_file")  # thêm đường dẫn file
         )
 
+def create_new_window_image_daviteq(title):
+    def show_image_by_ids(file_ids):
+        for widget in image_frame.winfo_children():
+            widget.destroy()
+
+        for idx, file_id in enumerate(file_ids):
+            img_path = download_from_drive(file_id)
+            if img_path and not str(img_path).startswith("ERROR"):
+                try:
+                    img = Image.open(img_path)
+                    img.thumbnail((100, 75), Image.Resampling.LANCZOS)
+                    photo = ImageTk.PhotoImage(img)
+
+                    row = (idx * 2) // max_columns
+                    col = idx % max_columns
+
+                    label_img = tk.Label(image_frame, image=photo, bg="white", cursor="hand2")
+                    label_img.image = photo
+                    label_img.grid(row=row, column=col, padx=5, pady=(5, 0))
+
+                    image_name = next((group[file_id] for region in category_images.values() for group in region.values() if file_id in group), "Unknown Image")
+
+                    label_text = tk.Label(image_frame, text=image_name, bg="white", font=("Arial", 9))
+                    label_text.grid(row=row + 1, column=col, padx=5, pady=(0, 10))
+
+                    label_img.bind("<Button-1>", lambda e, path=img_path: open_large_image(path))
+
+                except Exception as e:
+                    image_label.config(text=f"Lỗi xử lý ảnh: {e}", image='', bg="white")
+                    break
+
+    def open_large_image(img_path):
+        try:
+            img = Image.open(img_path)
+            photo = ImageTk.PhotoImage(img)
+
+            popup = tk.Toplevel()
+            popup.title("Xem ảnh lớn")
+            popup.configure(bg="white")
+
+            lbl = tk.Label(popup, image=photo, bg="white")
+            lbl.image = photo
+            lbl.pack(padx=10, pady=10)
+
+            btn = tk.Button(popup, text="Edit Image", command=lambda: copy_image_to_clipboard(img))
+            btn.pack(pady=10)
+
+        except Exception as e:
+            print(f"Lỗi mở ảnh lớn: {e}")
+
+    def copy_image_to_clipboard(img):
+        try:
+            img.show()
+            pyperclip.copy("Image copied to clipboard!")
+            print("Image copied to clipboard!")
+        except Exception as e:
+            print(f"Lỗi copy ảnh: {e}")
+
+    new_window = tk.Toplevel()
+    new_window.title(title)
+    new_window.geometry("1000x550")
+    new_window.configure(bg="white")
+
+    left_frame = tk.Frame(new_window, width=150, bg="#f0f0f0")
+    left_frame.pack(side="left", fill="y")
+
+    sub_button_frame = tk.Frame(new_window, width=200, bg="#e8e8e8")
+    sub_button_frame.pack(side="left", fill="y")
+
+    right_frame = tk.Frame(new_window, bg="white")
+    right_frame.pack(side="right", fill="both", expand=True)
+
+    global image_frame
+    image_frame = tk.Frame(right_frame, bg="white")
+    image_frame.pack(expand=True)
+
+    global image_label
+    image_label = tk.Label(right_frame, bg="white", text="", font=("Arial", 14))
+    image_label.pack()
+
+    category_frames = {}
+    parent_buttons = {}
+    selected_sub_button = None
+    selected_parent_button = None
+    max_columns = 4
+
+    def on_sub_button_click(btn_clicked, file_dict):
+        nonlocal selected_sub_button
+        for frame in category_frames.values():
+            for widget in frame.winfo_children():
+                if isinstance(widget, tk.Button):
+                    widget.config(bg="white", fg="black")
+        selected_sub_button = btn_clicked
+        selected_sub_button.config(bg="#4CAF50", fg="white")
+        show_image_by_ids(file_dict.keys())
+
+    def toggle_sub_buttons(category_name):
+        nonlocal selected_parent_button
+        for btn in parent_buttons.values():
+            btn.configure(bg="white", fg="black")
+        selected_parent_button = parent_buttons[category_name]
+        selected_parent_button.configure(bg="#4CAF50", fg="white")
+
+        for cat, frame in category_frames.items():
+            frame.pack_forget()
+        category_frames[category_name].pack()
+
+    for area, subcategories in category_images.items():
+        parent_btn = tk.Button(left_frame, text=area, width=15, pady=5,
+                               bg="white", fg="black", font=("Arial", 10, "bold"),
+                               activebackground="#e0e0e0",
+                               command=lambda a=area: toggle_sub_buttons(a))
+        parent_btn.pack(pady=(10, 0))
+        parent_buttons[area] = parent_btn
+
+        sub_frame = tk.Frame(sub_button_frame, bg="#e8e8e8")
+        category_frames[area] = sub_frame
+
+        for sub_name, file_dict in subcategories.items():
+            def make_sub_command(btn, files):
+                return lambda: on_sub_button_click(btn, files)
+
+            sub_btn = tk.Button(
+                sub_frame, text=sub_name,
+                width=15, pady=5,
+                relief="raised",
+                bg="white", fg="black",
+                font=("Arial", 10, "bold"), bd=1,
+                activebackground="#e0e0e0",
+                command=make_sub_command(None, file_dict)
+            )
+            sub_btn.pack(padx=10, pady=3)
+            sub_btn.config(command=make_sub_command(sub_btn, file_dict))
+
+    first_category = list(category_images.keys())[0]
+    toggle_sub_buttons(first_category)
+
 # ==== HÀM BẬT TẮT DANH SÁCH ====
 def toggle_list1(state):
     if list2_state["visible"]:
@@ -1219,6 +1461,12 @@ def note_action():
 note_button = tk.Button(left_button_frame, text="Note", font=("Arial", 12, "bold"),
                         bg="#873e23", fg="white", width=10, command=lambda: note_action())
 note_button.pack(pady=5)
+
+def image_daviteq_action():
+    create_new_window_image_daviteq("Daviteq")
+image_daviteq_button = tk.Button(left_button_frame, text="DAVITEQ", font=("Arial", 12, "bold"),
+                                 bg="#3fc4f3", fg="white", width=10, command=lambda: image_daviteq_action())
+image_daviteq_button.pack(pady=5)
 
 # Bắt đầu cập nhật đồng hồ
 update_clock()

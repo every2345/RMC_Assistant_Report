@@ -37,6 +37,7 @@ ROOT_CACHE_DIR = r"D:\RMC_Assistant\Cache"
 ARCHIVE_DIR = os.path.join(ROOT_CACHE_DIR, "Documentary_archive")
 os.makedirs(ARCHIVE_DIR, exist_ok=True)
 
+
 # ==== Frame chính ====
 main_frame = tk.Frame(root)
 main_frame.pack(expand=True, pady=40, padx=20)
@@ -176,6 +177,21 @@ def download_from_drive(file_id):
     except Exception as e:
         return f"ERROR: {e}"
 
+def download_from_drive_folder(file_id, save_dir, filename):
+    os.makedirs(save_dir, exist_ok=True)
+    file_path = os.path.join(save_dir, filename)
+
+    if os.path.exists(file_path):
+        return file_path
+
+    url = f'https://drive.google.com/uc?id={file_id}'
+    try:
+        gdown.download(url, file_path, quiet=True)
+        return file_path
+    except Exception as e:
+        print(f"Lỗi khi tải file {filename}: {e}")
+        return None
+
 # ==== Tìm credentials và token trong thư mục con từ file CACHE====
 def find_auth_paths():
     folder_path = os.path.join(ROOT_CACHE_DIR, CREDENTIAL_FILE_ID)
@@ -189,7 +205,7 @@ def find_auth_paths():
 
     # Nếu chưa có credentials, tải từ Drive
     if not os.path.exists(cred_path):
-        downloaded = download_from_drive(CREDENTIAL_FILE_ID, cred_dir, "credentials.json")
+        downloaded = download_from_drive_folder(CREDENTIAL_FILE_ID, cred_dir, "credentials.json")
         if not downloaded:
             raise FileNotFoundError("Không tải được credentials.json")
 
@@ -465,12 +481,11 @@ category_images = {
         }
     }
 }
-# ==== ID GG DRIVE để lấy file credentials.json trên Google Drive ====
-CREDENTIAL_FILE_ID = "11QGDt1o-1ABpnNpzmjz4IBcauTEBcxHj"
 
 # ==== ID của thư mục chứa các file tài liệu RMC trên Google Drive ====
 FOLDER_ID = '1XQNfRslvd-duF_VTkxkThVrk9n6vcv4T'
-
+#==== Thay thế bằng ID thực tế của file credentials.json trên Google Drive ====
+CREDENTIAL_FILE_ID = "11QGDt1o-1ABpnNpzmjz4IBcauTEBcxHj"
 # ==== TẠO các CỬA SỔ MỚI ====
 def create_new_window_contact(title, content=None):
     new_window = tk.Toplevel(root)

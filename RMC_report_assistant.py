@@ -11,6 +11,13 @@ import os
 from PIL import Image, ImageTk
 import pyperclip
 import json
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+import requests
+import subprocess
+import re  
 
 # Tạo cửa sổ chính
 root = tk.Tk()
@@ -24,7 +31,13 @@ hint_label = None # Label để hiển thị gợi ý
 box_filled = [False] * 6
 first_box_filled = False
 
-# Frame chính
+# ==== Cấu hình GG DRIVE API====
+SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+ROOT_CACHE_DIR = r"D:\RMC_Assistant\Cache"
+ARCHIVE_DIR = os.path.join(ROOT_CACHE_DIR, "Documentary_archive")
+os.makedirs(ARCHIVE_DIR, exist_ok=True)
+
+# ==== Frame chính ====
 main_frame = tk.Frame(root)
 main_frame.pack(expand=True, pady=40, padx=20)
 
@@ -144,7 +157,7 @@ def clear_text_output():
 # ==== HÀM tải flie từ google drive và Tạo thư mục để lưu các file được tải về từ GOOGLE DRIVE ====
 def download_from_drive(file_id):
 
-    # Đường dẫn cache gốc trong ổ D
+    # Đường dẫn tới file cache trong ổ D
     cache_dir = r"D:\RMC_Assistant\Cache"
     os.makedirs(cache_dir, exist_ok=True)
 
@@ -162,6 +175,72 @@ def download_from_drive(file_id):
         return cache_path
     except Exception as e:
         return f"ERROR: {e}"
+
+# ==== Tìm credentials và token trong thư mục con từ file CACHE====
+def find_auth_paths():
+    folder_path = os.path.join(ROOT_CACHE_DIR, CREDENTIAL_FILE_ID)
+    cred_dir = os.path.join(folder_path, "Credentials")
+    token_dir = os.path.join(folder_path, "Token")
+    os.makedirs(cred_dir, exist_ok=True)
+    os.makedirs(token_dir, exist_ok=True)
+
+    cred_path = os.path.join(cred_dir, "credentials.json")
+    token_path = os.path.join(token_dir, "token.json")
+
+    # Nếu chưa có credentials, tải từ Drive
+    if not os.path.exists(cred_path):
+        downloaded = download_from_drive(CREDENTIAL_FILE_ID, cred_dir, "credentials.json")
+        if not downloaded:
+            raise FileNotFoundError("Không tải được credentials.json")
+
+    return cred_path, token_path
+
+# ==== Xác thực Google Drive ====
+def authenticate():
+    cred_path, token_path = find_auth_paths()
+    creds = None
+
+    if os.path.exists(token_path):
+        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(cred_path, SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open(token_path, 'w') as token_file:
+            token_file.write(creds.to_json())
+
+    return creds, build('drive', 'v3', credentials=creds)
+
+# ==== Lấy danh sách file từ Google Drive ====
+def list_files(service):
+    query = f"'{FOLDER_ID}' in parents and trashed = false"
+    results = service.files().list(
+        q=query,
+        pageSize=100,
+        fields="files(id, name)"
+    ).execute()
+    return results.get("files", [])
+
+# ==== Tải file từ thư mục chứa tài liệu RMC trên Google Drive ====
+def download_file(token, file_id, filename):
+    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 200:
+        filepath = os.path.join(ARCHIVE_DIR, filename)
+        with open(filepath, "wb") as f:
+            f.write(response.content)
+    else:
+        print("❌ Tải thất bại:", response.text)
+
+# ====  Mở Folder theo đường dẫn bằng cách bấm nút ====
+def open_archive_folder():
+    if os.path.exists(ARCHIVE_DIR):
+        subprocess.run(['explorer', ARCHIVE_DIR], shell=True)
 
 # ==== Hàm chức năng cho đồng hồ đếm ngược ====
 def update_timer():
@@ -386,6 +465,12 @@ category_images = {
         }
     }
 }
+# ==== ID GG DRIVE để lấy file credentials.json trên Google Drive ====
+CREDENTIAL_FILE_ID = "11QGDt1o-1ABpnNpzmjz4IBcauTEBcxHj"
+
+# ==== ID của thư mục chứa các file tài liệu RMC trên Google Drive ====
+FOLDER_ID = '1XQNfRslvd-duF_VTkxkThVrk9n6vcv4T'
+
 # ==== TẠO các CỬA SỔ MỚI ====
 def create_new_window_contact(title, content=None):
     new_window = tk.Toplevel(root)
@@ -1181,6 +1266,125 @@ def create_new_window_image_daviteq(title):
 
     first_category = list(category_images.keys())[0]
     toggle_sub_buttons(first_category)
+
+def create_documentary_viewer(creds, service):
+    files = list_files(service)
+    filtered_files = files.copy()
+
+    # ==== Hàm tách tag từ tên file ====
+    def extract_tags(filename):
+        # Tìm các tag nằm trong ngoặc đơn đầu tên file, ví dụ: (ADV)(GUIDE)
+        tags = re.findall(r'\(([^)]+)\)', filename)
+        return ", ".join(tags) if tags else "Khác"
+
+    def update_table(*args):
+        keyword = search_var.get().lower().strip()
+        current_mode = mode.get()
+
+        # Nếu đang ở chế độ tìm theo STT mà ô tìm kiếm rỗng, không làm gì cả
+        if current_mode == "number" and keyword == "":
+            return
+
+        tree.delete(*tree.get_children())
+        new_filtered = []
+
+        if current_mode == "name":
+            new_filtered = [f for f in files if keyword in f["name"].lower()]
+        elif current_mode == "type":
+            new_filtered = [f for f in files if keyword in extract_tags(f["name"]).lower()]
+        elif current_mode == "number":
+            if keyword.isdigit():
+                idx = int(keyword)
+                if 1 <= idx <= len(files):
+                    new_filtered = [files[idx - 1]]
+            else:
+                # Không hợp lệ => hiển thị danh sách cũ (giữ nguyên)
+                return
+        else:
+            new_filtered = files.copy()
+
+        for idx, f in enumerate(new_filtered, start=1):
+            tag_label = extract_tags(f["name"])
+            filepath = os.path.join(ARCHIVE_DIR, f["name"])
+
+            is_downloaded = os.path.exists(filepath)
+            status_text = "✅ Đã tải" if is_downloaded else "❌ Chưa tải"
+            tag = "downloaded" if is_downloaded else "not_downloaded"
+
+            tree.insert("", "end", values=(idx, tag_label, f["name"], "⇩", status_text), tags=(tag,))
+
+        filtered_files.clear()
+        filtered_files.extend(new_filtered)
+
+    def handle_download(event):
+        selected = tree.focus()
+        if not selected:
+            return
+        item = tree.item(selected)
+        index = int(item['values'][0]) - 1
+        file = filtered_files[index]
+        download_file(creds.token, file['id'], file['name'])
+        update_table()
+
+    root = tk.Tk()
+    root.title("📁 RMC DRIVE VIEWER")
+    root.geometry("900x600")
+
+    frame_search = tk.Frame(root)
+    frame_search.pack(pady=5, padx=5, fill="x")
+
+    search_var = tk.StringVar()
+    entry_search = tk.Entry(frame_search, textvariable=search_var, font=("Arial", 12), width=50)
+    entry_search.pack(side="left", padx=5)
+
+    btn_refresh = tk.Button(frame_search, text="🔄 Làm mới", font=("Arial", 12), command=update_table)
+    btn_refresh.pack(side="right", padx=5)
+
+    btn_open_folder = tk.Button(frame_search, text="📂", font=("Arial", 12), command=open_archive_folder)
+    btn_open_folder.pack(side="right", padx=5)
+
+    entry_search.bind("<KeyRelease>", update_table)
+
+    frame_filter = tk.Frame(root)
+    frame_filter.pack(pady=5)
+
+    mode = tk.StringVar(value="name")
+    tk.Radiobutton(frame_filter, text="🔍 Tìm theo tên", variable=mode, value="name", command=update_table).pack(side="left", padx=10)
+    tk.Radiobutton(frame_filter, text="🔍 Tìm theo loại", variable=mode, value="type", command=update_table).pack(side="left", padx=10)
+    tk.Radiobutton(frame_filter, text="🔍 Tìm theo stt", variable=mode, value="number", command=update_table).pack(side="left", padx=10)
+
+    frame_table = tk.Frame(root)
+    frame_table.pack(pady=10, fill="both", expand=True)
+
+    columns = ("STT", "Loại", "Tên", "Tải", "Trạng thái")
+    tree = ttk.Treeview(frame_table, columns=columns, show="headings", height=20)
+
+    tree.heading("STT", text="STT")
+    tree.column("STT", width=50, anchor="center")
+
+    tree.heading("Loại", text="Loại")
+    tree.column("Loại", width=120, anchor="center")
+
+    tree.heading("Tên", text="Tên")
+    tree.column("Tên", width=400, anchor="w")
+
+    tree.heading("Tải", text="Tải về")
+    tree.column("Tải", width=80, anchor="center")
+
+    tree.heading("Trạng thái", text="Trạng thái")
+    tree.column("Trạng thái", width=100, anchor="center")
+
+    # Cấu hình màu thẻ
+    tree.tag_configure("downloaded", background="#d0f0c0")  # Xanh nhạt
+    tree.tag_configure("not_downloaded", background="#f7c6c7")  # Đỏ nhạt
+
+
+    tree.pack(fill="both", expand=True)
+    tree.bind("<Double-1>", handle_download)
+
+    update_table()
+    root.mainloop()
+
 # ==== HÀM BẬT TẮT DANH SÁCH ====
 def toggle_list1(state):
     if list2_state["visible"]:
@@ -1346,11 +1550,22 @@ note_button = tk.Button(left_button_frame, text="Note", font=("Arial", 12, "bold
                         bg="#873e23", fg="white", width=10, command=lambda: note_action())
 note_button.pack(pady=5)
 
+# ==== NÚT TRUY CẬP KHO ẢNH DAVITEQ ====
 def image_daviteq_action():
     create_new_window_image_daviteq("DAVITEQ")
 image_daviteq_button = tk.Button(left_button_frame, text="DAVITEQ", font=("Arial", 12, "bold"),
                                  bg="#3fc4f3", fg="white", width=10, command=lambda: image_daviteq_action())
 image_daviteq_button.pack(pady=5)
+
+# ==== NÚT  VÀO THƯ VIỆN TÀI LIỆU RMC====
+def rmc_drive_viewer_action():
+    creds, service = authenticate()
+    create_documentary_viewer(creds, service)
+
+rmc_drive_viewer_button = tk.Button(left_button_frame, text="Document", font=("Arial", 12, "bold"),
+                                    bg="#5A780B", fg="white", width=10, command=lambda: rmc_drive_viewer_action())
+rmc_drive_viewer_button.pack(pady=5)
+
 
 # Bắt đầu cập nhật đồng hồ
 update_clock()

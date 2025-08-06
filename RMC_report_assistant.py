@@ -1,3 +1,4 @@
+
 from re import L
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -24,19 +25,11 @@ root = tk.Tk()
 root.title("RMC Report Assistant")
 root.geometry("1080x800")
 
-# ==== Biến toàn cục cho box màu ====
-boxes = [] # Danh sách các ô vuông
-box_colors = ["white"] * 6
-hint_label = None # Label để hiển thị gợi ý
-box_filled = [False] * 6
-first_box_filled = False
-
 # ==== Cấu hình GG DRIVE API====
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 ROOT_CACHE_DIR = r"D:\RMC_Assistant\Cache"
 ARCHIVE_DIR = os.path.join(ROOT_CACHE_DIR, "Documentary_archive")
 os.makedirs(ARCHIVE_DIR, exist_ok=True)
-
 
 # ==== Frame chính ====
 main_frame = tk.Frame(root)
@@ -79,56 +72,6 @@ time_left = 300  # 5 phút = 300 giây
 
 # === Biến điều khiển đồng hồ ===
 is_running = True
-
-# ==== Frame chứa các ô tô màu ====
-box_frame = tk.Frame(main_frame)
-box_frame.pack(pady=(10, 0))
-
-# Tạo 6 ô trắng trong box_frame
-for i in range(6):
-    lbl = tk.Label(box_frame, width=10, height=1, bg="white", relief="solid", borderwidth=2)
-    lbl.grid(row=0, column=i, padx=5)
-    boxes.append(lbl)
-
-# ==== TẠO hint_label nằm dưới box_frame ====
-hint_label = tk.Label(main_frame, text="Quy trình xử lý sự cố đang đợi", wraplength=800, justify="left", font=("Arial", 11), fg="black")
-hint_label.pack(pady=(10, 20))  # Giữa box_frame và nút xác nhận
-
-# ==== Hàm xử lý tô màu ====
-def on_category_click():
-    global box_colors
-
-    # Đếm số ô đã được tô xanh
-    green_count = box_colors.count("green")
-
-    # Gợi ý tương ứng từng bước
-    if green_count == 1:
-        update_hint("Đã ghi nhận sự cố, tiến hành báo cáo lên group chung và tiếp tục theo dõi sự cố đang diễn ra. Nếu trong vòng 5 phút, không có thông báo gì từ phía bên Site đang xảy ra lỗi lên group chung. Lập tức liên hệ vói Site theo danh sách đã cho dựa vào mức độ ưu tiên (Bấm xác nhận nếu như thông tin đã được cập nhật lên group từ bên Site). Sau khi đã liên hệ, cập nhật thông tin liên hệ lên Group chung thông qua biểu mẫu trong mục Contact.")
-    elif green_count == 2:
-        update_hint("Tiếp tục theo dõi và cập nhật sự cố liên tục. Nếu như sau một khoảng thời gian không nhận được thông tin gì từ phía bên Site kể từ thời điểm đã liên hệ với Site (1 - 2 tiếng) và đã thông tin lên group chung (). Tiến hành liên hệ lại với Site để xác minh tình trạng kiếm tra thiết bị và nguyên nhân (nếu có). Tiến hành cập nhập lại tình hình thiết bị lên nhóm group chung về tình hình khắc phục trình trạng hiện tại của thiết bị gây lỗi.")
-    elif green_count == 3:
-        update_hint("Nếu sự cố sau 1 tiếng cho đến 2 tiếng vẫn chưa được sự xử lí và cũng chưa được cập nhật lên group chung. Tiến hành liên hệ lại với số điện thoại ưu tiên để xác nhận lại sự cố, sau đó báo cáo lại tình hiên fleen group chung (Bấm 'Xác nhận' nếu sự cố đã được giải quyết trước thời điểm này).")
-    elif green_count == 4:
-        update_hint("Khi sự cố đã được giải quyết, báo cáo lên group chung để khách hàng và các bộ phận liên quan nắm thông tin (Bấm 'Xác nhận' nếu có trường hợp ngoại lệ xảy ra).")
-    elif green_count == 5:
-        update_hint("Cập nhật lên bảng Alarm List.")
-    elif green_count == 6:
-        update_hint("Toàn bộ các bước trong quy trình đã được hoàn tất, làm tốt lắm!")
-        threading.Thread(target=reset_after_delay, daemon=True).start()
-
-def reset_after_delay():
-    time.sleep(5)
-    for i in range(6):
-        box_colors[i] = "white"
-        box_filled[i] = False
-        boxes[i].config(bg="white")
-    global first_box_filled
-    first_box_filled = False
-    update_hint("Quy trình xử lý sự cố đang đợi")
-
-def update_hint(text):
-    if hint_label:
-        hint_label.config(text=text)
 
 # ==== Hàm xử lý bắt và tiếp tục đồng hồ ====
 def update_clock():
@@ -583,10 +526,6 @@ def create_new_window_contact(title, content=None):
         output_text.delete("1.0", tk.END)
         output_text.insert(tk.END, content)
         output_text.config(state='disabled')
-
-        if fill_box(1):  # Chỉ tô ô 1 nếu ô 0 đã được tô
-            start_timer()
-
         new_window.destroy()
 
     # Nút OK
@@ -716,9 +655,6 @@ def create_new_window_status(title, content=None):
         output_text.delete("1.0", tk.END)
         output_text.insert(tk.END, content)
         output_text.config(state='disabled')
-
-        fill_box(2)  # Chỉ tô nếu ô 1 đã được tô
-
         new_window.destroy()
 
     ok_button = tk.Button(new_window, text="OK", font=("Arial", 12, "bold"),
@@ -1436,38 +1372,15 @@ def clear_text_output():
     output_text.config(state='disabled')
     reset_timer()
 
-def handle_first_box_fill():
-    global first_box_filled
-    if not first_box_filled:
-        boxes[0].config(bg="green")
-        box_colors[0] = "green"
-        box_filled[0] = True
-        first_box_filled = True
-        update_hint("Đã ghi nhận sự cố, tiến hành báo cáo lên group chung và tiếp tục theo dõi sự cố đang diễn ra...")
-        return True
-    return False
-
-def fill_box(index):
-    if index == 0 or box_filled[index - 1]:
-        boxes[index].config(bg="green")
-        box_colors[index] = "green"
-        box_filled[index] = True
-        return True
-    else:
-        messagebox.showwarning("Chưa hoàn tất bước trước", f"Vui lòng hoàn thành bước {index} trong quy trình xử lý sự cố trước khi tiếp tục.")
-        return False
-
 # ==== TẠO CÁC NÚT CHO DANH SÁCH ====
 def toggle_sub_buttons(state, item_dict):
     if not state["visible"]:
         for label, file_id in item_dict.items():
             if "NO_ERROR" in label:
                 def cmd(fid=file_id):
-                    handle_first_box_fill()
                     show_text_from_drive(fid, is_no_error=True, start_timer_flag=False)
             else:
                 def cmd(fid=file_id):
-                    handle_first_box_fill()
                     show_text_from_drive(fid, start_timer_flag=True)
             btn = tk.Button(item_frame, text=label, font=("Arial", 12), command=cmd)
             btn.pack(anchor='w', pady=1)
@@ -1527,36 +1440,18 @@ continue_button.pack(side='right', padx=5)
 
 # ==== NÚT CONTACT ====
 def contact_action():
-    if fill_box(1):  # Chỉ tô nếu ô 0 đã tô
         create_new_window_contact("Contact")
-        on_category_click()
-        reset_timer()
 contact_button = tk.Button(left_button_frame, text="Contact", font=("Arial", 12, "bold"),
                            bg="#2196F3", fg="white", width=10, command=lambda: contact_action())
 contact_button.pack(pady=5)
 
 # ==== NÚT STATUS ====
 def status_action():
-    if fill_box(2):  # Chỉ tô nếu ô 1 đã tô
         create_new_window_status("Status")
-        on_category_click()
         reset_timer()
 status_button = tk.Button(left_button_frame, text="Status", font=("Arial", 12, "bold"),
                           bg="#FF9800", fg="white", width=10, command=lambda: status_action())
 status_button.pack(pady=5)
-
-# ==== NÚT XÁC NHẬN HÀNH ĐỘNG ====
-def confirm_action():
-    for i in range(3, 6):
-        if not box_filled[i]:
-            if fill_box(i):
-                on_category_click()
-                break  # Đảm bảo chỉ tô một ô
-            else:
-                break  # Dừng lại nếu chưa đủ điều kiện
-confirm_button = tk.Button(main_frame, text="Xác nhận", font=("Arial", 12, "bold"),
-                           bg="#4CAF50", fg="white", command=confirm_action)
-confirm_button.pack(pady=10)
 
 # ==== NÚT NOTE ====
 def note_action():
@@ -1576,7 +1471,6 @@ image_daviteq_button.pack(pady=5)
 def rmc_drive_viewer_action():
     creds, service = authenticate()
     create_documentary_viewer(creds, service)
-
 rmc_drive_viewer_button = tk.Button(left_button_frame, text="Document", font=("Arial", 12, "bold"),
                                     bg="#5A780B", fg="white", width=10, command=lambda: rmc_drive_viewer_action())
 rmc_drive_viewer_button.pack(pady=5)

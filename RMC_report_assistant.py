@@ -1,50 +1,113 @@
-
-from re import L
 import tkinter as tk
-from tkinter import ttk, messagebox
-from unicodedata import category
-import schedule
-import threading
-import time
+from PIL import Image, ImageTk
 import datetime
-import gdown
 import os
 from PIL import Image, ImageTk
 import pyperclip
-import json
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from googleapiclient.discovery import build
+from tkinter import ttk
+import shutil
+import re
 import requests
-import subprocess
-import re  
+import msal
+import base64
+import time
+import threading
+from tkinter import ttk, messagebox
+import json
+import schedule
 
+# ==== Thiết lập và Cấu hình Azure AD, OneDrive, đường dẫn lưu trữ và hơn thế nữa... =============================================================================================================
+# == lINK ONNDRIVE OF REPORT FORM ==
+nvl_report_form_share_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/REPORT%20FORM/NVL%20REPORT%20FORM"
+tqb_report_form_share_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/REPORT%20FORM/TQB%20REPORT%20FORM"
+bdnc_report_form_share_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/REPORT%20FORM/BDNC%20REPORT%20FORM"
+
+# == lINK ONNEDRIVE OF HOTLINES AND CONTACT FORM ==
+hotlines_and_confirm_form_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/HOTLINE_AND_CONFIRM_FORM"
+
+# ===== KHU VỰC ẢNH DAVITEQ =====
+# == GATEWAY == 
+gateway_bdnc_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/GATEWAY/BDNC"
+gateway_tqb_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/GATEWAY/TQB"
+gateway_nvl_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/GATEWAY/NVL"
+
+# == LAYOUT ==
+layout_bdnc_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/BDNC"
+layout_tqb_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/TQB"
+layout_nvl_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/NVL"
+
+# == SENSOR ==
+sensor_bdnc_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/BDNC"
+sensor_tqb_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/TQB"
+sensor_nvl_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/NVL"
+
+# == ALARMPOINT ==
+al_nvl_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/ALARM%20POINTS/NVL"
+al_tqb_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/ALARM%20POINTS/TQB"
+
+# ===== LINK LƯU TRỮ CÁC TÀI LIỆU PDF =====
+documentary_archive_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DOCUMENTARY"
+
+# == Thông tin ID của ứng dụng Azure AD ==
+CLIENT_ID = "ac4edccf-a8ee-41aa-bcc4-6603c4bebae1"
+TENANT_ID = "5983a1d2-f46b-492d-a9b3-7e2f3609d20b"
+AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
+GRAPH_SCOPES = ["Files.Read"]
+
+# ============ Đường dân local trên máy tính để lưu trữ cache ================
+CACHE_FILE = "token_cache.bin"
+
+# == đường dẫn lưu trữ các biểu mẫu ==
+REPORT_FORM_DIR = r"D:\RMC_Assistant_ver1.1\Report_Form_Cache"
+
+# == đường dẫn lưu trữ các ghi chú ==
+NOTE_ARCHIVE_DIR = r"D:\RMC_Assistant_ver1.1\NOTE"
+
+# == đường dẫn lưu trữ các hình ảnh ==
+IMAGE_LAYOUT_ARCHIVE_DIR = r"D:\RMC_Assistant_ver1.1\IMAGE\LAYOUT"
+IMAGE_GATEWAY_ARCHIVE_DIR = r"D:\RMC_Assistant_ver1.1\IMAGE\GATEWAY"
+IMAGE_SENSOR_ARCHIVE_DIR = r"D:\RMC_Assistant_ver1.1\IMAGE\SENSOR"
+IMAGE_AL_ARCHIVE_DIR = r"D:\RMC_Assistant_ver1.1\IMAGE\ALARMPOINT"
+
+# == đường dẫn lưu trữ các tài liệu ==
+DOCUMENTARY_ARCHIVE_DIR = r"D:\RMC_Assistant_ver1.1\DOCUMENTARY"
+
+# === Khu vực tạo các thư mục lưu trữ nếu chưa có ===
+# Tạo thư lục lưu trữ biểu mẫu
+os.makedirs(REPORT_FORM_DIR, exist_ok=True)
+
+#Tạo thư mục lưu trữ ghi chú
+os.makedirs(NOTE_ARCHIVE_DIR, exist_ok=True)
+
+# Tạo thư mục lưu trữ hình ảnh
+os.makedirs(IMAGE_LAYOUT_ARCHIVE_DIR, exist_ok=True)
+os.makedirs(IMAGE_GATEWAY_ARCHIVE_DIR, exist_ok=True)
+os.makedirs(IMAGE_SENSOR_ARCHIVE_DIR, exist_ok=True)
+os.makedirs(IMAGE_AL_ARCHIVE_DIR, exist_ok=True)
+
+# Tạo thư mục lưu trữ tài liệu
+os.makedirs(DOCUMENTARY_ARCHIVE_DIR, exist_ok=True)
+
+# === Khu vực tạo Frame để lưu trữ các thành phần ===============================================================================================
 # Tạo cửa sổ chính
 root = tk.Tk()
 root.title("RMC Report Assistant")
 root.geometry("1080x800")
 
-# ==== Cấu hình GG DRIVE API====
-SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
-ROOT_CACHE_DIR = r"D:\RMC_Assistant\Cache"
-ARCHIVE_DIR = os.path.join(ROOT_CACHE_DIR, "Documentary_archive")
-os.makedirs(ARCHIVE_DIR, exist_ok=True)
-
-# ==== Frame chính ====
+# Frame chính
 main_frame = tk.Frame(root)
 main_frame.pack(expand=True, pady=40, padx=20)
 
-# Frame con chứa văn bản và các nút
+# Frame con chứa văn bản và các nút bên phải
 content_frame = tk.Frame(main_frame)
 content_frame.pack()
 
-# === FRAME CHỨA CONTACT, NOTE VÀ STATUS BÊN TRÁI ===
+# === frame chứa nút contact, status và note bên trái ===
 left_button_frame = tk.Frame(content_frame)
 left_button_frame.pack(side="left", fill="y", padx=10, pady=10)
 
 # === Text để hiển thị văn bản ===
-output_text = tk.Text(content_frame, font=("Arial", 13), width=60, height=12, wrap="word")
+output_text = tk.Text(content_frame, font=("Arial", 13), width=60, height=20, wrap="word")
 output_text.pack(side='left', pady=(10, 0), padx=10)
 output_text.config(state='disabled')
 
@@ -56,39 +119,77 @@ button_frame.pack(side='left', padx=10)
 item_frame = tk.Frame(content_frame)
 item_frame.pack(side='left', padx=10)
 
-# ==== Frame cho NÚT COPY, CLEAR, COUNTINUE, CATCH ====
-cccc_frame = tk.Frame(main_frame)
-cccc_frame.pack(fill='x', pady=(10, 0), padx=20)
+# ==== NÚT COPY ====
+copy_frame = tk.Frame(main_frame)
+copy_frame.pack(fill='x', pady=(10, 0), padx=20)
 
-# ==== THÊM ĐỒNG HỒ ĐẾM NGƯỢC ==== 
-timer_frame = tk.Frame(main_frame)
-timer_frame.pack(pady=(10, 0))
+# Nhóm bên phải: Catch, Clock, Continue
+right_controls = tk.Frame(copy_frame)
+right_controls.pack(side="right")
 
-timer_label = tk.Label(timer_frame, text="⏳Waiting Countdown⏳", font=("Arial", 16, "bold"), fg="blue")
-timer_label.pack()
+# Nhóm bên trái: Copy và Clear
+left_controls = tk.Frame(copy_frame)
+left_controls.pack(side="left")
 
-countdown_job = None
-time_left = 300  # 5 phút = 300 giây
+# ==== Frame chứa các ô tô màu ====
+box_frame = tk.Frame(main_frame)
+box_frame.pack(pady=(10, 0))
 
-# === Biến điều khiển đồng hồ ===
-is_running = True
+# === Khu vực tạo và cấu hình chức năng ===========================================================================================
+# ============== Chức năng tô màu ô tiến trình ==================
+boxes = [] # Danh sách các ô vuông
+box_colors = ["white"] * 6
+hint_label = None # Label để hiển thị gợi ý
+box_filled = [False] * 6
+first_box_filled = False
 
-# ==== Hàm xử lý bắt và tiếp tục đồng hồ ====
-def update_clock():
-    if is_running:
-        now = datetime.datetime.now().strftime("%H:%M:%S")
-        clock_label.config(text=now)
-    root.after(1000, update_clock)
+# ==== Tạo 6 ô trắng trong box_frame ====
+for i in range(6):
+    lbl = tk.Label(box_frame, width=10, height=1, bg="white", relief="solid", borderwidth=2)
+    lbl.grid(row=0, column=i, padx=5)
+    boxes.append(lbl)
 
-def catch_clock():
-    global is_running
-    is_running = False
+# ==== TẠO hint_label nằm dưới box_frame ====
+hint_label = tk.Label(main_frame, text="Quy trình xử lý sự cố đang đợi", wraplength=800, justify="left", font=("Arial", 11), fg="black")
+hint_label.pack(pady=(10, 20))  # Giữa box_frame và nút xác nhận
 
-def continue_clock():
-    global is_running
-    is_running = True
+# ==== Hàm xử lý tô màu ====
+def on_category_click():
+    global box_colors
 
-# ==== Hàm chức năng cho nút copy và nút clear ====
+    # Đếm số ô đã được tô xanh
+    green_count = box_colors.count("green")
+
+    # Gợi ý tương ứng từng bước
+    if green_count == 1:
+        update_hint("Đã ghi nhận sự cố, tiến hành báo cáo lên group chung và tiếp tục theo dõi sự cố đang diễn ra. Nếu trong vòng 5 phút, không có thông báo gì từ phía bên Site đang xảy ra lỗi lên group chung. Lập tức liên hệ vói Site theo danh sách đã cho dựa vào mức độ ưu tiên (Bấm xác nhận nếu như thông tin đã được cập nhật lên group từ bên Site). Sau khi đã liên hệ, cập nhật thông tin liên hệ lên Group chung thông qua biểu mẫu trong mục Contact.")
+    elif green_count == 2:
+        update_hint("Tiếp tục theo dõi và cập nhật sự cố liên tục. Nếu như sau một khoảng thời gian không nhận được thông tin gì từ phía bên Site kể từ thời điểm đã liên hệ với Site (1 - 2 tiếng) và đã thông tin lên group chung (). Tiến hành liên hệ lại với Site để xác minh tình trạng kiếm tra thiết bị và nguyên nhân (nếu có). Tiến hành cập nhập lại tình hình thiết bị lên nhóm group chung về tình hình khắc phục trình trạng hiện tại của thiết bị gây lỗi.")
+    elif green_count == 3:
+        update_hint("Nếu sự cố sau 1 tiếng cho đến 2 tiếng vẫn chưa được sự xử lí và cũng chưa được cập nhật lên group chung. Tiến hành liên hệ lại với số điện thoại ưu tiên để xác nhận lại sự cố, sau đó báo cáo lại tình hiên fleen group chung (Bấm 'Xác nhận' nếu sự cố đã được giải quyết trước thời điểm này).")
+    elif green_count == 4:
+        update_hint("Khi sự cố đã được giải quyết, báo cáo lên group chung để khách hàng và các bộ phận liên quan nắm thông tin (Bấm 'Xác nhận' nếu có trường hợp ngoại lệ xảy ra).")
+    elif green_count == 5:
+        update_hint("Cập nhật lên bảng Alarm List.")
+    elif green_count == 6:
+        update_hint("Toàn bộ các bước trong quy trình đã được hoàn tất, làm tốt lắm!")
+        threading.Thread(target=reset_after_delay, daemon=True).start()
+
+def reset_after_delay():
+    time.sleep(5)
+    for i in range(6):
+        box_colors[i] = "white"
+        box_filled[i] = False
+        boxes[i].config(bg="white")
+    global first_box_filled
+    first_box_filled = False
+    update_hint("Quy trình xử lý sự cố đang đợi")
+
+def update_hint(text):
+    if hint_label:
+        hint_label.config(text=text)
+
+# ==== Chức năng cho nút copy và nút clear văn bản đang hiển thị trên text box ====
 def copy_text_to_clipboard():
     text = output_text.get("1.0", "end-1c")
     pyperclip.copy(text)
@@ -98,110 +199,24 @@ def clear_text_output():
     output_text.delete("1.0", tk.END)
     output_text.config(state='disabled')
 
-# ==== HÀM tải flie từ google drive và Tạo thư mục để lưu các file được tải về từ GOOGLE DRIVE ====
-def download_from_drive(file_id):
+# == Chức năng bắt và tiếp tục đồng hồ thời gian thực của hệ thống ==
+is_running = True
 
-    # Đường dẫn tới file cache trong ổ D
-    cache_dir = r"D:\RMC_Assistant\Cache"
-    os.makedirs(cache_dir, exist_ok=True)
+def catch_clock():
+    global is_running
+    is_running = False
 
-    # Đường dẫn đến file cache
-    cache_path = os.path.join(cache_dir, f"{file_id}.txt")
+def continue_clock():
+    global is_running
+    is_running = True
 
-    # Nếu file cache tồn tại, trả về luôn
-    if os.path.exists(cache_path):
-        return cache_path
+def update_clock():
+    if is_running:
+        now = datetime.datetime.now().strftime("%H:%M:%S")
+        clock_label.config(text=now)
+    root.after(1000, update_clock)
 
-    # Nếu chưa có, tải file từ Google Drive và lưu vào cache
-    url = f'https://drive.google.com/uc?id={file_id}'
-    try:
-        gdown.download(url, cache_path, quiet=True)
-        return cache_path
-    except Exception as e:
-        return f"ERROR: {e}"
-
-def download_from_drive_folder(file_id, save_dir, filename):
-    os.makedirs(save_dir, exist_ok=True)
-    file_path = os.path.join(save_dir, filename)
-
-    if os.path.exists(file_path):
-        return file_path
-
-    url = f'https://drive.google.com/uc?id={file_id}'
-    try:
-        gdown.download(url, file_path, quiet=True)
-        return file_path
-    except Exception as e:
-        print(f"Lỗi khi tải file {filename}: {e}")
-        return None
-
-# ==== Tìm credentials và token trong thư mục con từ file CACHE====
-def find_auth_paths():
-    folder_path = os.path.join(ROOT_CACHE_DIR, CREDENTIAL_FILE_ID)
-    cred_dir = os.path.join(folder_path, "Credentials")
-    token_dir = os.path.join(folder_path, "Token")
-    os.makedirs(cred_dir, exist_ok=True)
-    os.makedirs(token_dir, exist_ok=True)
-
-    cred_path = os.path.join(cred_dir, "credentials.json")
-    token_path = os.path.join(token_dir, "token.json")
-
-    # Nếu chưa có credentials, tải từ Drive
-    if not os.path.exists(cred_path):
-        downloaded = download_from_drive_folder(CREDENTIAL_FILE_ID, cred_dir, "credentials.json")
-        if not downloaded:
-            raise FileNotFoundError("Không tải được credentials.json")
-
-    return cred_path, token_path
-
-# ==== Xác thực Google Drive ====
-def authenticate():
-    cred_path, token_path = find_auth_paths()
-    creds = None
-
-    if os.path.exists(token_path):
-        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
-
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(cred_path, SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open(token_path, 'w') as token_file:
-            token_file.write(creds.to_json())
-
-    return creds, build('drive', 'v3', credentials=creds)
-
-# ==== Lấy danh sách file từ Google Drive ====
-def list_files(service):
-    query = f"'{FOLDER_ID}' in parents and trashed = false"
-    results = service.files().list(
-        q=query,
-        pageSize=100,
-        fields="files(id, name)"
-    ).execute()
-    return results.get("files", [])
-
-# ==== Tải file từ thư mục chứa tài liệu RMC trên Google Drive ====
-def download_file(token, file_id, filename):
-    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
-    headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(url, headers=headers)
-
-    if response.status_code == 200:
-        filepath = os.path.join(ARCHIVE_DIR, filename)
-        with open(filepath, "wb") as f:
-            f.write(response.content)
-    else:
-        print("❌ Tải thất bại:", response.text)
-
-# ====  Mở Folder theo đường dẫn bằng cách bấm nút ====
-def open_archive_folder():
-    if os.path.exists(ARCHIVE_DIR):
-        subprocess.run(['explorer', ARCHIVE_DIR], shell=True)
-
-# ==== Hàm chức năng cho đồng hồ đếm ngược ====
+# == Chức năng lấy và hiển thị thời gian hiện tại trên hệ thống lên văn bản ==
 def update_timer():
     global time_left, countdown_job
     minutes, seconds = divmod(time_left, 60)
@@ -212,6 +227,7 @@ def update_timer():
     else:
         timer_label.config(text="⏰Contact Site⏰")
 
+# == Chức năng bắt đầu và reset đồng hồ đếm ngược ==
 def start_timer():
     global time_left, countdown_job
     if countdown_job:
@@ -227,10 +243,96 @@ def reset_timer():
     time_left = 300
     timer_label.config(text="⏳Waiting Countdown⏳")
 
+# ==== thêm đồng hồ đếm ngược ==== 
+timer_frame = tk.Frame(main_frame)
+timer_frame.pack(pady=(10, 0))
+
+timer_label = tk.Label(timer_frame, text="⏳Waiting Countdown⏳", font=("Arial", 16, "bold"), fg="blue")
+timer_label.pack()
+
+countdown_job = None
+time_left = 300  # 5 phút = 300 giây
+
+# ==== Đăng nhập, tải file và xử lý OneDrive bằng Azure ===========================================================================
+# ==== Hàm đăng nhập Azure AD ====
+def authenticate():
+    cache = msal.SerializableTokenCache()
+    if os.path.exists(CACHE_FILE):
+        cache.deserialize(open(CACHE_FILE, "r").read())
+
+    app = msal.PublicClientApplication(CLIENT_ID, authority=AUTHORITY, token_cache=cache)
+    accounts = app.get_accounts()
+
+    if accounts:
+        result = app.acquire_token_silent(GRAPH_SCOPES, account=accounts[0])
+    else:
+        flow = app.initiate_device_flow(scopes=GRAPH_SCOPES)
+        if "user_code" not in flow:
+            raise Exception("Không khởi tạo được Device Flow")
+        print(flow["message"])
+        result = app.acquire_token_by_device_flow(flow)
+
+    if "access_token" in result:
+        with open(CACHE_FILE, "w") as f:
+            f.write(cache.serialize())
+        return result["access_token"]
+    else:
+        raise Exception("Đăng nhập thất bại: " + str(result))
+
+# Đăng nhập Azure
+access_token = authenticate()
+
+# ==== Lấy danh sách file từ link chia sẻ ====
+def list_files_from_url(token, share_url):
+    encoded_url = base64.b64encode(share_url.encode("utf-8")).decode("utf-8")
+    encoded_url = encoded_url.rstrip("=").replace("/", "_").replace("+", "-")
+
+    url = f"https://graph.microsoft.com/v1.0/shares/u!{encoded_url}/driveItem/children"
+    headers = {"Authorization": f"Bearer {token}"}
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        items = r.json().get("value", [])
+        return [{"id": item["id"], "name": item["name"]} for item in items if "file" in item]
+    else:
+        return []
+
+# ==== Tải file từ OneDrive ====
+def download_file(token, file_id, filename):
+
+    # Đường dẫn đến file cache
+    cache_path = os.path.join(REPORT_FORM_DIR, filename)
+    if os.path.exists(cache_path):
+        return cache_path
+
+    url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content"
+    headers = {"Authorization": f"Bearer {token}"}
+    r = requests.get(url, headers=headers, stream=True)
+
+    if r.status_code == 200:
+        filepath = os.path.join(REPORT_FORM_DIR, filename)
+        with open(filepath, "wb") as f:
+            for chunk in r.iter_content(1024):
+                f.write(chunk)
+        return filepath  # ✅ Thêm return ở đây
+    else:
+        return None
+
+# === Hiển thị file văn bản từ OneDrive ===========================================================================
+# ==== LẤY DANH SÁCH FILE ONE DRIVE THEO TÊN ====
+def build_device_mapping(token, share_url, device_names):
+    files = list_files_from_url(token, share_url)
+    mapping = {}
+    for dev in device_names:
+        # Tìm file nào có tên chứa tên thiết bị (không phân biệt hoa thường)
+        match = next((f for f in files if dev.lower() in f["name"].lower()), None)
+        if match:
+            mapping[dev] = match["id"]
+    return mapping
+
 # ==== CHỨC NĂNG HIỂN THỊ VĂN BẢN VÀ THỜI GIAN====
-def show_text_from_drive(file_id, is_no_error=False, start_timer_flag=True):
-    file_path = download_from_drive(file_id)
+def show_text_from_drive(file_id, filename, is_no_error=False, start_timer_flag=True):
     try:
+        file_path = download_file(access_token, file_id, filename)  # tải từ OneDrive
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
 
@@ -255,181 +357,186 @@ def show_text_from_drive(file_id, is_no_error=False, start_timer_flag=True):
     if start_timer_flag:
         start_timer()
 
+device_names_anvl = [
+    "NVL_FR&FC", "NVL_FAN", "NVL_DELICA",
+    "NVL_POWER_1", "NVL_POWER_2", "NVL_POWER_3", 
+    "NVL_NO_ERROR"
+]
+
+device_names_atqb = [
+    "TQB_FR&FC", "TQB_POWER", "TQB_FAN", 
+    "TQB_SUSHI", "TQB_BAKERY", "TQB_DELICA",
+    "TQB_NO_ERROR"
+]
+
+device_names_abnc = [
+    "ABNC_FR&FC", "ABNC_POWER", "ABNC_FAN", "ABNC_LPG", "ABNC_NO_ERROR"
+]
+
+contact_sample = ["CONTACT_FORM"]
+confirm_sample = ["CONFIRM_FORM"]
+
+# Mapping riêng cho từng khu vực
+nvl_report_form_files = build_device_mapping(access_token, nvl_report_form_share_url, device_names_anvl)
+tqb_report_form_files = build_device_mapping(access_token, tqb_report_form_share_url, device_names_atqb)
+bdnc_report_form_files = build_device_mapping(access_token, bdnc_report_form_share_url, device_names_abnc)
+
 # ==== TẠO GIAO DIỆN DANH SÁCH ====
+active_parent_button = None
+active_child_button = None
+
+def set_active_parent_button(btn):
+    global active_parent_button
+    # Reset nút cha cũ
+    if active_parent_button and active_parent_button != btn:
+        active_parent_button.config(bg="SystemButtonFace", fg="black")
+    # Đổi màu nút cha mới
+    btn.config(bg="green", fg="white")
+    active_parent_button = btn
+
+def set_active_child_button(btn):
+    global active_child_button
+    # Reset nút con cũ
+    if active_child_button and active_child_button != btn:
+        active_child_button.config(bg="SystemButtonFace", fg="black")
+    # Đổi màu nút con mới
+    btn.config(bg="blue", fg="white")
+    active_child_button = btn
+
 def create_list_block(parent, list_name, items, toggle_function, state):
     block_frame = tk.Frame(parent)
     block_frame.pack(pady=10, anchor='w')
-    row_frame = tk.Frame(block_frame)
-    row_frame.pack(anchor='w')
 
-    color_indicator = tk.Canvas(row_frame, width=20, height=20, highlightthickness=0)
-    color_indicator.pack(side='left', padx=(0, 10))
-    indicator = color_indicator.create_oval(2, 2, 18, 18, fill='red')
+    list_button = tk.Button(
+        block_frame,
+        text=list_name,
+        font=("Arial", 14),
+        width=12,
+        command=lambda: [set_active_parent_button(list_button), toggle_function(state)]
+    )
+    list_button.pack(anchor='w')
+    state["button"] = list_button
 
-    list_button = tk.Button(row_frame, text=list_name, command=lambda: toggle_function(state),
-                            font=("Arial", 14), width=8)
-    list_button.pack(side='left')
+# ==== HÀM BẬT TẮT DANH SÁCH ====
+def toggle_list1(state):
+    if list2_state["visible"]:
+        toggle_sub_buttons(list2_state, tqb_report_form_files)
+    if list3_state["visible"]:
+        toggle_sub_buttons(list3_state, bdnc_report_form_files)
+    toggle_sub_buttons(state, nvl_report_form_files)
 
-    state["indicator_canvas"] = color_indicator
-    state["indicator_id"] = indicator
+def toggle_list2(state):
+    if list1_state["visible"]:
+        toggle_sub_buttons(list1_state, nvl_report_form_files)
+    if list3_state["visible"]:
+        toggle_sub_buttons(list3_state, bdnc_report_form_files)
+    toggle_sub_buttons(state, tqb_report_form_files)
 
-# ==== CÁC mà đường dẫn DANH SÁCH FILE ID, hình ảnh và biểu mẫu báo cáo từ google drive ====
-# ==== DỮ LIỆU ĐƯỢC TỔ CHỨC THEO KHU VỰC ====
-category_images = {
-    "ANVL": {
-        "Sensor": {
-            "1060jAOW78jUlcNTExPDveyG7sDN7gn3i": "KEF&KSF",
-            "1kVfjuOyBmyz7y6vUG_kgRl6mf1Fck8K1": "DELICA",
-            "10zRy0yQaT0UAqDA2lFCBflYBNTI3V_hB": "POWERSUPPLY1",
-            "1ZwolrlhT4ulfuC5SdBdh5crxhR-1jWQ9": "FR&FC",
-            "17Pv5XTXWSzU0W3JMWCehw4qhjWet7g0X": "POWERSUPPLY2",
-            "1SFb0QQ84qB8q02shYxgGZWp0nhO4g4FQ": "POWERSUPPLY3"
-        },
-        "Layout": {
-            "1moC360oUYfcZ8LNIojpdwDzHh79qmimX": "Layout_ANVL"
-        },
-        "Gateway": {
-            "1aZE5oP7ngAyX54fOv0Exm4vDqG7lE-B9": "Gateway_1",
-            "1CuqkedbFiK0I8EFPqs_i7b_-4oFWx27_": "Gateway_2"
-        },
-        "Alarm points": {
-            "1UEmDpu5E42ZWLFiJE1a5l55nSNkDOw_u": "NVL_Delica"
-        }
-    },
-    "BDNC": {
-        "Sensor": {
-            "14CrZrrWMdVDyV_rrGge2xWTWGOhXjX7Q": "AHU",
-            "1nr9IRbU231jS8g32JTpNWzmOlKgMHdG3": "FAN&VRV",
-            "1f2iiBlHBj4lQbNbVS04FLEzbkpnzXBIV": "FR&FC",
-            "12wX89FsnvxTz1rTwmtfIOyYe2QnHjaLm": "LPG",
-            "1Wdr23jmblvu9aveBGIUo_lfJOPUxR8Ou": "POWERSUPPLY"
-        },
-        "Layout": {
-            "1tOoW_QYZ8Ns44KWRbOnolT9aKor-Qf7q": "Layout_BDNC"
-        },
-        "Gateway": {
-            "1VHjuk-_5ZIb53o0e_gZBUHo5bDngU590": "Gateway_BDNC"
-        },
-        "Alarm points": {}
-    },
-    "TQB": {
-        "Sensor": {
-            "1FrMbcaBlT5P2XEsC4QE7E9fwUtocH9W4": "BAKERY",
-            "1AiLD7HoCbgjt2VcmH1WUltPofGk4Fiey": "DELICA",
-            "1DQCRERO-to6rtB9dyBFc6GMTXhxNb579": "FAN",
-            "1RIl1cYtaQndVN-PRp2GvKs_Apbnvfxxv": "FR&FC",
-            "1MSqa8FTV65vfdtdd9r0nw4oYk_PtC3H3": "SUSHI",
-            "1cgGQZ6pWpkqFFgdlRysas6Sg3ufUWlNZ": "POWERSUPPLY"
-        },
-        "Layout": {
-            "1OtfrUIaf4CmL3Slyf2ZspItNUFuDsbDC": "Layout_TQB"
-        },
-        "Gateway": {
-            "1G5ABGCJw3OXJZOq42gSG3D3FXzjPWbOk": "Gateway_TQB"
-        },
-        "Alarm points": {
-            "1CI_BRGdB9lQn6jYhI61gIGQmj0oKIIqq": "TQB_Sushi",
-            "1ZxmaaIX3eV6Zv4HKuwcv6jOADmOFy0Wa": "TQB_Bakery"
-        }
-    }
-}
+def toggle_list3(state):
+    if list1_state["visible"]:
+        toggle_sub_buttons(list1_state, nvl_report_form_files)
+    if list2_state["visible"]:
+        toggle_sub_buttons(list2_state, tqb_report_form_files)
+    toggle_sub_buttons(state, bdnc_report_form_files)
 
-list1_files = {
-    "FR&FC": "17MyGAgm4zfwH0dCIoT2hS2USzqqTDpoS",
-    "POWER": "1wn10nS9ca33JGPia1enBKoflimi6R4bF",
-    "FAN": "1x6WwI6IBF34bxk9neMsFWUBiHrOwzaAP",
-    "DELICA": "1PETK7KmIPTyySoMlUeinUpzw39ViQanG",
-    "SUSHI": "1642wL6grtH1K9u1Obqjnr6cjqnsqfmJd",
-    "BAKERY": "1zsjHS11bpS6wa0ThVr3b4gtTU9Rwk0Oo",
-    "NO_ERROR": "1kGNNzWSt5OXVq6KMZtmw6glhqOu1aAxi"
-}
+# ==== SAO CHÉP VĂN BẢN ====
+def copy_text_to_clipboard():
+    root.clipboard_clear()
+    text = output_text.get("1.0", tk.END)
+    root.clipboard_append(text)
+    root.update()
 
-list2_files = {
-    "FAN": "13pDhw6LfsONDh2prelUUu09JYi8MfWoG",
-    "POWER": "1Mr6b7g9A8ehOJnUkmPOT3rbPy7fsyCgH",
-    "FR&FC": "1cZj-Bw94AqpDBOJCO3v-fRBVCOCnN1UI",
-    "LPG": "1vtIVCz8NAqNBQ3wHztW314ffgcv_hiSZ",
-    "NO_ERROR": "1zaWLKejWabN_3Zp2M2qiC3p_7w-6xL5Y"
-}
+# ==== XOÁ VĂN BẢN ====
+def clear_text_output():
+    output_text.config(state='normal')
+    output_text.delete("1.0", tk.END)
+    output_text.config(state='disabled')
+    reset_timer()
 
-list3_files = {
-    "FAN": "1og4OfF53YsYEfDK1MxT5zFCOsxhAXSSG",
-    "POWER_1": "17gRIE14NcSGsrPKNv203tjlLVjfycfJt",
-    "POWER_2": "1TSyDxCadsK4UJ2oFOjbYFa_0x4Lhh2jJ",
-    "POWER_3": "1OhEx-Kgi4eJZWk7FxL4jw3TLEEp51Eet",
-    "FR&FC": "11531CGpGf5b0NIaAUd6WHrXOZStZFhXz",
-    "DELICA": "1TN_yaxyAyuLkf6PwDX9_SCQsFlpaWnnM",
-    "NO_ERROR": "1BaMisKLfSq-0xyKgRCEn2WOWVtycn_aE"
-}
+# ==== TÔ MÀU TIẾN TRÌNH ====
+def handle_first_box_fill():
+    global first_box_filled
+    if not first_box_filled:
+        boxes[0].config(bg="green")
+        box_colors[0] = "green"
+        box_filled[0] = True
+        first_box_filled = True
+        update_hint("Đã ghi nhận sự cố, tiến hành báo cáo lên group chung và tiếp tục theo dõi sự cố đang diễn ra...")
+        return True
+    return False
 
-contact_sample = { "1MuZBmMdeFZPkiOg9wHwNNpguSf_k-jrI" }
+def fill_box(index):
+    if index == 0 or box_filled[index - 1]:
+        boxes[index].config(bg="green")
+        box_colors[index] = "green"
+        box_filled[index] = True
+        return True
+    else:
+        messagebox.showwarning("Chưa hoàn tất bước trước", f"Vui lòng hoàn thành bước {index} trong quy trình xử lý sự cố trước khi tiếp tục.")
+        return False
 
-confirm_sample = { "1lIXTD2ryyYg9Qob0xedYemI9UGMSIqoV" }
+def make_cmd(fid, b, fname, is_no_error=False):
+    def cmd():
+        set_active_child_button(b)
+        handle_first_box_fill()  # ✅ Bây giờ sẽ chỉ chạy khi bấm
+        if is_no_error:
+            show_text_from_drive(fid, fname, is_no_error=True, start_timer_flag=False)
+        else:
+            show_text_from_drive(fid, fname, start_timer_flag=True)
+    return cmd
 
-category_images = {
-    "ANVL": {
-        "Sensor": {
-            "1060jAOW78jUlcNTExPDveyG7sDN7gn3i": "KEF&KSF",
-            "1kVfjuOyBmyz7y6vUG_kgRl6mf1Fck8K1": "DELICA",
-            "10zRy0yQaT0UAqDA2lFCBflYBNTI3V_hB": "POWERSUPPLY1",
-            "1ZwolrlhT4ulfuC5SdBdh5crxhR-1jWQ9": "FR&FC",
-            "17Pv5XTXWSzU0W3JMWCehw4qhjWet7g0X": "POWERSUPPLY2",
-            "1SFb0QQ84qB8q02shYxgGZWp0nhO4g4FQ": "POWERSUPPLY3"
-        },
-        "Layout": {
-            "1moC360oUYfcZ8LNIojpdwDzHh79qmimX": "Layout_ANVL"
-        },
-        "Gateway": {
-            "1aZE5oP7ngAyX54fOv0Exm4vDqG7lE-B9": "Gateway_1",
-            "1CuqkedbFiK0I8EFPqs_i7b_-4oFWx27_": "Gateway_2"
-        },
-        "Alarm points": {
-            "1UEmDpu5E42ZWLFiJE1a5l55nSNkDOw_u": "NVL_Delica"
-        }
-    },
-    "BDNC": {
-        "Sensor": {
-            "14CrZrrWMdVDyV_rrGge2xWTWGOhXjX7Q": "AHU",
-            "1nr9IRbU231jS8g32JTpNWzmOlKgMHdG3": "FAN&VRV",
-            "1f2iiBlHBj4lQbNbVS04FLEzbkpnzXBIV": "FR&FC",
-            "12wX89FsnvxTz1rTwmtfIOyYe2QnHjaLm": "LPG",
-            "1Wdr23jmblvu9aveBGIUo_lfJOPUxR8Ou": "POWERSUPPLY"
-        },
-        "Layout": {
-            "1tOoW_QYZ8Ns44KWRbOnolT9aKor-Qf7q": "Layout_BDNC"
-        },
-        "Gateway": {
-            "1VHjuk-_5ZIb53o0e_gZBUHo5bDngU590": "Gateway_BDNC"
-        },
-        "Alarm points": {}
-    },
-    "TQB": {
-        "Sensor": {
-            "1FrMbcaBlT5P2XEsC4QE7E9fwUtocH9W4": "BAKERY",
-            "1AiLD7HoCbgjt2VcmH1WUltPofGk4Fiey": "DELICA",
-            "1DQCRERO-to6rtB9dyBFc6GMTXhxNb579": "FAN",
-            "1RIl1cYtaQndVN-PRp2GvKs_Apbnvfxxv": "FR&FC",
-            "1MSqa8FTV65vfdtdd9r0nw4oYk_PtC3H3": "SUSHI",
-            "1cgGQZ6pWpkqFFgdlRysas6Sg3ufUWlNZ": "POWERSUPPLY"
-        },
-        "Layout": {
-            "1OtfrUIaf4CmL3Slyf2ZspItNUFuDsbDC": "Layout_TQB"
-        },
-        "Gateway": {
-            "1G5ABGCJw3OXJZOq42gSG3D3FXzjPWbOk": "Gateway_TQB"
-        },
-        "Alarm points": {
-            "1CI_BRGdB9lQn6jYhI61gIGQmj0oKIIqq": "TQB_Sushi",
-            "1ZxmaaIX3eV6Zv4HKuwcv6jOADmOFy0Wa": "TQB_Bakery"
-        }
-    }
-}
+# ==== TẠO CÁC NÚT CHO DANH SÁCH ====
+def toggle_sub_buttons(state, item_dict, auto_select_first=False):
+    if not state["visible"]:
+        first_child_btn = None
+        for idx, (label, file_id) in enumerate(item_dict.items()):
+            # ✅ Chỉ lấy phần thông tin quan trọng (bỏ prefix trước dấu _)
+            short_label = label.split("_", 1)[-1] if "_" in label else label
 
-# ==== ID của thư mục chứa các file tài liệu RMC trên Google Drive ====
-FOLDER_ID = '1XQNfRslvd-duF_VTkxkThVrk9n6vcv4T'
-#==== Thay thế bằng ID thực tế của file credentials.json trên Google Drive ====
-CREDENTIAL_FILE_ID = "11QGDt1o-1ABpnNpzmjz4IBcauTEBcxHj"
-# ==== TẠO các CỬA SỔ MỚI ====
+            btn = tk.Button(item_frame, text=short_label, font=("Arial", 12))
+
+            if "NO_ERROR" in label:
+                cmd = lambda fid=file_id, b=btn, fname=label: [
+                    set_active_child_button(b),
+                    handle_first_box_fill(),
+                    show_text_from_drive(fid, fname, is_no_error=True, start_timer_flag=False)
+                ]
+            else:
+                cmd = lambda fid=file_id, b=btn, fname=label: [
+                    set_active_child_button(b),
+                    handle_first_box_fill(),
+                    show_text_from_drive(fid, fname, start_timer_flag=True)
+                ]
+            btn.config(command=cmd)
+            btn.pack(anchor='w', pady=1)
+            state["buttons"].append(btn)
+
+            if idx == 0:
+                first_child_btn = btn
+        state["visible"] = True
+
+        if auto_select_first and first_child_btn:
+            set_active_parent_button(state["button"])
+            set_active_child_button(first_child_btn)
+    else:
+        for btn in state["buttons"]:
+            btn.pack_forget()
+        state["buttons"].clear()
+        state["visible"] = False
+
+# ==== TRẠNG THÁI ====
+list1_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
+list2_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
+list3_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
+
+# ==== TẠO DANH SÁCH GIAO DIỆN ====
+create_list_block(button_frame, "ANVL", nvl_report_form_files, toggle_list1, list1_state)
+create_list_block(button_frame, "ATQB", tqb_report_form_files, toggle_list2, list2_state)
+create_list_block(button_frame, "ABNC", bdnc_report_form_files, toggle_list3, list3_state)
+toggle_sub_buttons(list1_state, nvl_report_form_files, auto_select_first=True)
+
+# ==== khu vực tạo các cửa sổ chức năng ================================================================================================================================
+# == Cửa sổ contact ==
 def create_new_window_contact(title, content=None):
     new_window = tk.Toplevel(root)
     new_window.title(title)
@@ -442,11 +549,16 @@ def create_new_window_contact(title, content=None):
     confirm_frame.pack(padx=20, pady=10, fill="x")
 
     def toggle_entry_fields():
-        state = "normal" if confirm_var.get() == "not_confirmed" else "disabled"
-        dept_entry.config(state=state)
-        device_entry.config(state=state)
-        status_entry.config(state=state)
-        desc_entry.config(state="normal" if state == "normal" else "disabled")
+        if confirm_var.get() == "not_confirmed":
+            dept_entry.config(state="normal")
+            device_entry.config(state="normal")
+            status_entry.config(state="readonly")   # combobox enable
+            desc_entry.config(state="normal")
+        else:
+            dept_entry.config(state="disabled")
+            device_entry.config(state="disabled")
+            status_entry.config(state="disabled")   # combobox disable
+            desc_entry.config(state="disabled")
 
     tk.Radiobutton(confirm_frame, text="Đã confirm", variable=confirm_var, value="confirmed",
                    command=toggle_entry_fields).pack(anchor="w", padx=10, pady=2)
@@ -466,8 +578,17 @@ def create_new_window_contact(title, content=None):
     device_entry.grid(row=1, column=1, pady=5, sticky="ew")
 
     tk.Label(form_frame, text="Tình trạng:", font=("Arial", 11)).grid(row=2, column=0, sticky="w", pady=5)
-    status_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
+
+    status_entry = ttk.Combobox(
+        form_frame,
+        font=("Arial", 11),
+        state="disabled",   # ban đầu disable
+        values=["Đang xử lý", "Đã xử lý", "Chờ xử lý", "Không chọn"]
+    )
     status_entry.grid(row=2, column=1, pady=5, sticky="ew")
+
+    # Đặt giá trị mặc định
+    status_entry.set("Không chọn")
 
     tk.Label(form_frame, text="Mô tả:", font=("Arial", 11)).grid(row=3, column=0, sticky="nw", pady=5)
     desc_entry = tk.Text(form_frame, font=("Arial", 11), height=5, width=40, state="disabled")
@@ -477,55 +598,73 @@ def create_new_window_contact(title, content=None):
     toggle_entry_fields()
 
     def handle_ok():
-        # Chỉ cho phép xử lý khi ở trạng thái "not_confirmed"
         if confirm_var.get() != "not_confirmed":
             new_window.destroy()
             return
 
         dept = dept_entry.get().strip()
         device = device_entry.get().strip()
-        status = status_entry.get().strip()
+        status_val = status_entry.get().strip()
         desc = desc_entry.get("1.0", tk.END).strip()
 
-        # Tải file contact từ Google Drive
-        file_id = next(iter(contact_sample))
-        file_path = download_from_drive(file_id)
-
         try:
+            # === Lấy danh sách file trong thư mục OneDrive ===
+            files = list_files_from_url(access_token, hotlines_and_confirm_form_url)
+
+            # === Tìm file confirm ===
+            target_name = next(iter(contact_sample))  # ví dụ "CONFIRM_FORM"
+            target_file = next((f for f in files if target_name in f["name"]), None)
+
+            if not target_file:
+                raise FileNotFoundError(f"Không tìm thấy file chứa '{target_name}' trong thư mục OneDrive.")
+
+            file_id = target_file["id"]
+            filename = target_file["name"]
+
+            # === Tải file về ===
+            file_path = download_file(access_token, file_id, filename)
+
+            if not file_path or not os.path.exists(file_path):
+                raise FileNotFoundError("File confirm không tồn tại sau khi tải.")
+
+            # === Đọc file confirm template ===
             with open(file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
 
             replaced_lines = []
             for line in lines:
-                original_line = line  # lưu dòng gốc để kiểm tra sau
+                original_line = line
 
                 line = line.replace("[title]", dept)
                 line = line.replace("[device]", device)
-                line = line.replace("[status]", status)
+                line = line.replace("[status]", status_val)
                 line = line.replace("[description]", desc)
 
-                # Nếu sau khi thay mà dòng đó trống hoặc chỉ có từ khóa không có giá trị thì bỏ qua
                 stripped_line = line.strip()
 
                 if ("[title]" in original_line and not dept) or \
                    ("[device]" in original_line and not device) or \
-                   ("[status]" in original_line and not status) or \
+                   ("[status]" in original_line and not status_val) or \
                    ("[description]" in original_line and not desc) or \
                    not stripped_line:
-                    continue  # bỏ dòng
+                    continue
 
-                replaced_lines.append(stripped_line)  # thêm dòng đã xử lý, loại bỏ khoảng trắng
+                replaced_lines.append(stripped_line)
 
-            # Gộp lại thành một khối văn bản liên tục
             content = '\n'.join(replaced_lines)
 
         except Exception as e:
-            content = f"Lỗi khi xử lý file contact: {e}"
+            content = f"Lỗi khi xử lý file confirm: {e}"
 
+        # Hiển thị ra output_text
         output_text.config(state='normal')
         output_text.delete("1.0", tk.END)
         output_text.insert(tk.END, content)
         output_text.config(state='disabled')
+
+        if fill_box(1):
+            start_timer()
+
         new_window.destroy()
 
     # Nút OK
@@ -533,6 +672,7 @@ def create_new_window_contact(title, content=None):
                           bg="green", fg="white", command=handle_ok)
     ok_button.pack(pady=10)
 
+# == Cửa sổ status ==
 def create_new_window_status(title, content=None):
     new_window = tk.Toplevel(root)
     new_window.title(title)
@@ -545,13 +685,20 @@ def create_new_window_status(title, content=None):
     confirm_frame.pack(padx=20, pady=10, fill="x")
 
     def toggle_entry_fields():
-        state = "normal" if confirm_var.get() == "not_confirmed" else "disabled"
-        dept_entry.config(state=state)
-        device_entry.config(state=state)
-        status_entry.config(state=state)
-        start_time_entry.config(state=state)
-        end_time_entry.config(state=state)
-        desc_entry.config(state="normal" if state == "normal" else "disabled")
+        if confirm_var.get() == "not_confirmed":
+            dept_entry.config(state="normal")
+            device_entry.config(state="normal")
+            status_entry.config(state="readonly")
+            start_time_entry.config(state="normal")
+            end_time_entry.config(state="normal")
+            desc_entry.config(state="normal")
+        else:
+            dept_entry.config(state="disabled")
+            device_entry.config(state="disabled")
+            status_entry.config(state="readonly")
+            start_time_entry.config(state="disabled")
+            end_time_entry.config(state="disabled")
+            desc_entry.config(state="disabled")
 
     tk.Radiobutton(confirm_frame, text="Đã confirm", variable=confirm_var, value="confirmed",
                    command=toggle_entry_fields).pack(anchor="w", padx=10, pady=2)
@@ -571,8 +718,17 @@ def create_new_window_status(title, content=None):
     device_entry.grid(row=1, column=1, pady=5, sticky="ew")
 
     tk.Label(form_frame, text="Tình trạng:", font=("Arial", 11)).grid(row=2, column=0, sticky="w", pady=5)
-    status_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
+
+    status_entry = ttk.Combobox(
+        form_frame,
+        font=("Arial", 11),
+        state="disabled",   # ban đầu disable
+        values=["Alarm - Chưa xử lý", "Alarm - Đã xử lý", "Alarm - Chờ xử lý", "Normal - Đã xử lý", "Normal - Chờ xử lý", "Không chọn"]
+    )
     status_entry.grid(row=2, column=1, pady=5, sticky="ew")
+
+    # Đặt giá trị mặc định
+    status_entry.set("Không chọn")
 
     tk.Label(form_frame, text="Thời gian bắt đầu (HH:MM):", font=("Arial", 11)).grid(row=3, column=0, sticky="w", pady=5)
     start_time_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
@@ -601,7 +757,7 @@ def create_new_window_status(title, content=None):
         end_time_str = end_time_entry.get().strip()
         desc = desc_entry.get("1.0", tk.END).strip()
 
-        # Tính thời gian xử lý
+        # === Tính thời gian xử lý ===
         try:
             if start_time_str and end_time_str:
                 fmt = "%H:%M"
@@ -609,16 +765,29 @@ def create_new_window_status(title, content=None):
                 end_dt = datetime.datetime.strptime(end_time_str, fmt)
                 diff_minutes = int((end_dt - start_dt).total_seconds() / 60)
                 if diff_minutes < 0:
-                    diff_minutes += 24 * 60  # xử lý khi qua ngày
+                    diff_minutes += 24 * 60  # xử lý qua ngày
                 time = f"{diff_minutes} phút ({start_time_str} - {end_time_str})"
             else:
                 time = ""
         except ValueError:
             time = ""
 
-        # Tải file contact từ Google Drive
-        file_id = next(iter(confirm_sample))
-        file_path = download_from_drive(file_id)
+        # === Tải file confirm từ OneDrive ===
+        # === Lấy danh sách file trong thư mục OneDrive ===
+        files = list_files_from_url(access_token, hotlines_and_confirm_form_url)
+
+        # === Tìm file confirm ===
+        target_name = next(iter(confirm_sample))  # "CONFIRM_FORM"
+        target_file = next((f for f in files if target_name in f["name"]), None)
+
+        if not target_file:
+            raise FileNotFoundError(f"Không tìm thấy file chứa '{target_name}' trong thư mục OneDrive.")
+
+        file_id = target_file["id"]
+        filename = target_file["name"]
+
+        # === Tải file về ===
+        file_path = download_file(access_token, file_id, filename)
 
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -649,29 +818,34 @@ def create_new_window_status(title, content=None):
             content = '\n'.join(replaced_lines)
 
         except Exception as e:
-            content = f"Lỗi khi xử lý file contact: {e}"
+            content = f"Lỗi khi xử lý file confirm: {e}"
 
+        # === Hiển thị nội dung ra output_text ===
         output_text.config(state='normal')
         output_text.delete("1.0", tk.END)
         output_text.insert(tk.END, content)
         output_text.config(state='disabled')
+
+        # Tô ô 2 nếu ô 1 đã được tô
+        fill_box(2)
+
         new_window.destroy()
 
     ok_button = tk.Button(new_window, text="OK", font=("Arial", 12, "bold"),
                           bg="green", fg="white", command=handle_ok)
     ok_button.pack(pady=10)
 
+# == Cửa sổ note ==
 def create_new_window_note():
     # Thư mục lưu dữ liệu
-    DATA_DIR = r"D:\RMC_Assistant\Note"
+    DATA_DIR = NOTE_ARCHIVE_DIR
     os.makedirs(DATA_DIR, exist_ok=True)
 
-    # === Schedule Thread ===
+    # === Luồng kế hoạch ===
     def run_schedule():
         while True:
             schedule.run_pending()
             time.sleep(1)
-
     threading.Thread(target=run_schedule, daemon=True).start()
 
     # === Tạo Note ===
@@ -699,7 +873,7 @@ def create_new_window_note():
             json.dump(reminder_data, f, ensure_ascii=False, indent=4)
         update_stt_label()
 
-    def schedule_reminder(keyword, content, times, days, months, mode, file_path=None):
+    def schedule_reminder(keyword, content, times, days, months, mode, file_path=None, delete_mode="delete"):
         for t in times:
             def job(t=t):
                 now = datetime.datetime.now()
@@ -707,21 +881,33 @@ def create_new_window_note():
                     # Hiển thị thông báo đúng luồng giao diện
                     def show_popup():
                         messagebox.showinfo(f"Thông báo: {keyword}", f"[{t}] {content}")
-                    
+
                         if mode == "1 lần" and file_path and os.path.exists(file_path):
                             try:
-                                os.remove(file_path)
-                                print(f"Đã xóa file: {file_path}")
+                                with open(file_path, "r", encoding="utf-8") as f:
+                                    data = json.load(f)
+
+                                # ✅ Nếu chọn delete → xóa file
+                                if delete_mode == "delete":
+                                    os.remove(file_path)
+                                else:
+                                    # ✅ Nếu chọn keep → chỉ update "done": True
+                                    if isinstance(data, dict):
+                                        data["done"] = True
+                                        with open(file_path, "w", encoding="utf-8") as f:
+                                            json.dump(data, f, ensure_ascii=False, indent=4)
+
                             except Exception as e:
-                                print(f"Lỗi xóa file {file_path}: {e}")
+                                print(f"Lỗi xử lý file {file_path}: {e}")
 
                     try:
                         note_window.after(0, show_popup)
                     except Exception as e:
                         print(f"Lỗi gọi after: {e}")
-                
+
                     if mode == "1 lần":
                         return schedule.CancelJob
+
             schedule.every().day.at(t).do(job)
 
     def add_reminder():
@@ -730,6 +916,7 @@ def create_new_window_note():
         time_input = time_entry.get().strip()
         day_input = day_entry.get().strip()
         month_input = month_entry.get().strip()
+        mode = intensity_var.get()
 
         # ==== Chuẩn hóa thời gian ====
         time_strs = time_input.split(",")
@@ -800,18 +987,19 @@ def create_new_window_note():
         days = [d.strip() for d in day_strs]
         months = [m.strip() for m in month_strs]
 
-        schedule_reminder(keyword, content, times, days, months, mode)
         reminder_data = {
-            "keyword": keyword,
-            "content": content,
-            "times": times,
-            "days": days,
-            "months": months,
-            "mode": mode
+            "keyword": keyword,                     #  Từ khóa nhắc
+            "content": content,                     #  Nội dung của nhắc
+            "times": times,                         #  Dữ liệu giờ phút (HH:MM)
+            "days": days,                           #  Dữ liệu ngày
+            "months": months,                       #  Dữ liệu tháng 
+            "mode": mode,                           #  Loai nhắc ("1 lần" hoặc "Cố định")
+            "delete_mode": delete_mode_var.get(),   #  thêm lựa chọn delete/keep (Chỉ dành cho note nhắc 1 lần)
+            "done": False                           #  đánh dấu đã nhắc hay chưa
         }
         save_reminder_to_new_file(reminder_data)
         file_path = os.path.join(DATA_DIR, f"reminders{get_next_stt()-1}.json")
-        schedule_reminder(keyword, content, times, days, months, mode, file_path)
+        schedule_reminder(keyword, content, times, days, months, mode, file_path, delete_mode_var.get())
         messagebox.showinfo("Thành công", f"Đã tạo note {get_next_stt()-1}.json", parent=note_window)
 
     def set_placeholder(entry, text):
@@ -847,9 +1035,13 @@ def create_new_window_note():
                             all_data.append(data)
                         elif isinstance(data, list):
                             for item in data:
-                                if isinstance(item, dict) and "keyword" in item:
-                                    item["_file"] = file_path
-                                    all_data.append(item)
+                                if isinstance(data, dict) and "keyword" in data:
+                                    data["_file"] = file_path
+                                    if "delete_mode" not in data:
+                                        data["delete_mode"] = "delete"   # mặc định là xóa sau khi đã nhắc 1 lần 
+                                    if "done" not in data:
+                                        data["done"] = False             # Không xóa sau khi đã nhắc 1 lần 
+                                    all_data.append(data)
                 except Exception as e:
                     print(f"Lỗi đọc {filename}: {e}")
         return all_data
@@ -907,7 +1099,6 @@ def create_new_window_note():
         display_data(full_data)
         update_stt_label()  # cập nhật STT ghi chú tiếp theo
 
-
     def delete_selected_notes():
         global full_data
         selected_items = tree.selection()
@@ -947,7 +1138,7 @@ def create_new_window_note():
     # === Giao diện chính ===
     note_window = tk.Toplevel()
     note_window.title("Trình quản lý ghi chú định kỳ")
-    note_window.geometry("1000x400")
+    note_window.geometry("1000x500")
 
     btn_frame = tk.Frame(note_window)
     btn_frame.pack(pady=10)
@@ -963,7 +1154,8 @@ def create_new_window_note():
         tk.Label(main_frame, text="Số ghi chú hiện tại:").pack()
         tk.Label(main_frame, textvariable=current_stt, font=("Arial", 14, "bold"), fg="blue").pack(pady=(0, 10))
 
-        global keyword_entry, content_entry, time_entry, day_entry, month_entry, intensity_var
+        global keyword_entry, content_entry, time_entry, day_entry, month_entry, intensity_var, delete_mode_var, delete_frame
+
         tk.Label(main_frame, text="Từ khóa:").pack()
         keyword_entry = tk.Entry(main_frame)
         keyword_entry.pack(fill="x", padx=10)
@@ -989,7 +1181,39 @@ def create_new_window_note():
 
         tk.Label(main_frame, text="Cường độ báo:").pack()
         intensity_var = tk.StringVar(value="1 lần")
-        ttk.Combobox(main_frame, textvariable=intensity_var, values=["1 lần", "Cố định"]).pack(fill="x", padx=10)
+        mode_combo = ttk.Combobox(main_frame, textvariable=intensity_var, values=["1 lần", "Cố định"])
+        mode_combo.pack(fill="x", padx=10)
+
+        # --- Frame chứa tick chọn ---
+        delete_frame = tk.LabelFrame(main_frame, text="Tùy chọn khi đã nhắc (chỉ cho loại nhắc 1 lần", padx=5, pady=5)
+        delete_frame.pack(fill="x", padx=10, pady=5)
+
+        delete_mode_var = tk.StringVar(value="delete")  # mặc định là xóa sau nhắc
+
+        rb_delete = tk.Radiobutton(
+            delete_frame, text=" Xóa khi đã nhắc", variable=delete_mode_var, value="delete"
+        )
+        rb_keep = tk.Radiobutton(
+            delete_frame, text=" Không xóa khi đã nhắc", variable=delete_mode_var, value="keep"
+        )
+
+        rb_delete.pack(side="left", padx=5)
+        rb_keep.pack(side="left", padx=5)
+
+        # Hàm enable/disable frame dựa trên mode
+        def update_delete_frame_state(*args):
+            if intensity_var.get() == "1 lần":
+                for child in delete_frame.winfo_children():
+                    child.configure(state="normal")
+            else:
+                for child in delete_frame.winfo_children():
+                    child.configure(state="disabled")
+
+        # Gán sự kiện thay đổi mode
+        intensity_var.trace_add("write", update_delete_frame_state)
+
+        # gọi 1 lần ban đầu để set trạng thái đúng
+        update_delete_frame_state()
 
         tk.Button(main_frame, text="Thêm Nhắc", command=add_reminder).pack(pady=15)
 
@@ -1032,16 +1256,16 @@ def create_new_window_note():
         scrollbar.config(command=tree.yview)
         # Cài đặt tiêu đề + cột
         tree.heading("STT", text="STT")
-        tree.column("STT", width=50, anchor="center")
+        tree.column("STT", width=10, anchor="center")
 
         tree.heading("Từ khóa", text="Từ khóa")
-        tree.column("Từ khóa", width=120, anchor="center")
+        tree.column("Từ khóa", width=60, anchor="center")
 
         tree.heading("Nội dung", text="Nội dung")
-        tree.column("Nội dung", width=200, anchor="w")
+        tree.column("Nội dung", width=400, anchor="w")
 
         tree.heading("Thời gian", text="Thời gian")
-        tree.column("Thời gian", width=130, anchor="center")
+        tree.column("Thời gian", width=50, anchor="center")
 
         tree.heading("Ngày", text="Ngày")
         tree.column("Ngày", width=100, anchor="center")
@@ -1077,20 +1301,44 @@ def create_new_window_note():
             reminder["days"],
             reminder["months"],
             reminder["mode"],
-            reminder.get("_file")  # thêm đường dẫn file
+            reminder.get("_file"),                  # thêm đường dẫn file
+            reminder.get("delete_mode", "delete")   # truyền delete_mode (mặc định delete nếu không có)
         )
 
+# == Cửa sổ hình ảnh Daviteq ==
 def create_new_window_image_daviteq(title):
-    def show_image_by_ids(file_ids):
+    def show_images(file_list, category):
         for widget in image_frame.winfo_children():
             widget.destroy()
 
-        for idx, file_id in enumerate(file_ids):
-            img_path = download_from_drive(file_id)
+        for idx, file in enumerate(file_list):
+            # Xác định thư mục lưu dựa vào category
+            if category == "LAYOUT":
+                save_dir = IMAGE_LAYOUT_ARCHIVE_DIR
+            elif category == "GATEWAY":
+                save_dir = IMAGE_GATEWAY_ARCHIVE_DIR
+            elif category == "SENSOR":
+                save_dir = IMAGE_SENSOR_ARCHIVE_DIR
+            elif category == "ALARMPOINT":
+                save_dir = IMAGE_AL_ARCHIVE_DIR
+            else:
+                save_dir = "."
+
+            os.makedirs(save_dir, exist_ok=True)
+
+            # Đường dẫn file ảnh lưu về
+            local_path = os.path.join(save_dir, file["name"])
+
+            # Nếu chưa có thì tải về
+            if not os.path.exists(local_path):
+                img_path = download_file(access_token, file["id"], local_path)
+            else:
+                img_path = local_path
+
             if img_path and not str(img_path).startswith("ERROR"):
                 try:
                     img = Image.open(img_path)
-                    img.thumbnail((100, 75), Image.Resampling.LANCZOS)
+                    img.thumbnail((100, 75), Image.Resampling.LANCZOS) #Thu nhỏ khi hiển thị thumbnail trong giao diện
                     photo = ImageTk.PhotoImage(img)
 
                     row = (idx * 2) // max_columns
@@ -1100,9 +1348,7 @@ def create_new_window_image_daviteq(title):
                     label_img.image = photo
                     label_img.grid(row=row, column=col, padx=5, pady=(5, 0))
 
-                    image_name = next((group[file_id] for region in category_images.values() for group in region.values() if file_id in group), "Unknown Image")
-
-                    label_text = tk.Label(image_frame, text=image_name, bg="white", font=("Arial", 9))
+                    label_text = tk.Label(image_frame, text=file["name"], bg="white", font=("Arial", 9))
                     label_text.grid(row=row + 1, column=col, padx=5, pady=(0, 10))
 
                     label_img.bind("<Button-1>", lambda e, path=img_path: open_large_image(path))
@@ -1111,13 +1357,19 @@ def create_new_window_image_daviteq(title):
                     image_label.config(text=f"Lỗi xử lý ảnh: {e}", image='', bg="white")
                     break
 
-    def open_large_image(img_path):
+    def open_large_image(img_path): #Scale ảnh, giảm 50% tỷ lệ thực tế của ảnh hiển thị 
         try:
             img = Image.open(img_path)
-            photo = ImageTk.PhotoImage(img)
+
+            #Scale ảnh theo tỷ lệ 1:2 (giảm 50%)
+            scale_factor = 0.5
+            new_size = (int(img.width * scale_factor), int(img.height * scale_factor))
+            img_resized = img.resize(new_size, Image.Resampling.LANCZOS)
+
+            photo = ImageTk.PhotoImage(img_resized)
 
             popup = tk.Toplevel()
-            popup.title("Xem ảnh lớn")
+            popup.title("DAVITEQ IMAGE DATA (Scaled 1:2)")
             popup.configure(bg="white")
 
             lbl = tk.Label(popup, image=photo, bg="white")
@@ -1134,7 +1386,6 @@ def create_new_window_image_daviteq(title):
         try:
             img.show()
             pyperclip.copy("Image copied to clipboard!")
-            print("Image copied to clipboard!")
         except Exception as e:
             print(f"Lỗi copy ảnh: {e}")
 
@@ -1166,7 +1417,7 @@ def create_new_window_image_daviteq(title):
     selected_parent_button = None
     max_columns = 4
 
-    def on_sub_button_click(btn_clicked, file_dict):
+    def on_sub_button_click(btn_clicked, file_list, category):
         nonlocal selected_sub_button
         for frame in category_frames.values():
             for widget in frame.winfo_children():
@@ -1174,19 +1425,43 @@ def create_new_window_image_daviteq(title):
                     widget.config(bg="white", fg="black")
         selected_sub_button = btn_clicked
         selected_sub_button.config(bg="#4CAF50", fg="white")
-        show_image_by_ids(file_dict.keys())
+        show_images(file_list, category)
 
     def toggle_sub_buttons(category_name):
         nonlocal selected_parent_button
         for btn in parent_buttons.values():
             btn.configure(bg="white", fg="black")
         selected_parent_button = parent_buttons[category_name]
-        selected_parent_button.configure(bg="#4CAF50", fg="white")
+        selected_parent_button.configure(bg="#247985", fg="white")
 
         for cat, frame in category_frames.items():
             frame.pack_forget()
         category_frames[category_name].pack()
 
+    # ✅ Lấy dữ liệu từ OneDrive (thay Google Drive)
+    category_images = {
+        "GATEWAY": {
+            "BDNC": list_files_from_url(access_token, gateway_bdnc_url),
+            "TQB": list_files_from_url(access_token, gateway_tqb_url),
+            "NVL": list_files_from_url(access_token, gateway_nvl_url),
+        },
+        "LAYOUT": {
+            "BDNC": list_files_from_url(access_token, layout_bdnc_url),
+            "TQB": list_files_from_url(access_token, layout_tqb_url),
+            "NVL": list_files_from_url(access_token, layout_nvl_url),
+        },
+        "SENSOR": {
+            "BDNC": list_files_from_url(access_token, sensor_bdnc_url),
+            "TQB": list_files_from_url(access_token, sensor_tqb_url),
+            "NVL": list_files_from_url(access_token, sensor_nvl_url),
+        },
+        "ALARMPOINT": {
+            "TQB": list_files_from_url(access_token, al_tqb_url),
+            "NVL": list_files_from_url(access_token, al_nvl_url),
+        }
+    }
+
+    # ==== Sinh nút cha / con từ category_images ====
     for area, subcategories in category_images.items():
         parent_btn = tk.Button(left_frame, text=area, width=15, pady=5,
                                bg="white", fg="black", font=("Arial", 10, "bold"),
@@ -1198,9 +1473,9 @@ def create_new_window_image_daviteq(title):
         sub_frame = tk.Frame(sub_button_frame, bg="#e8e8e8")
         category_frames[area] = sub_frame
 
-        for sub_name, file_dict in subcategories.items():
-            def make_sub_command(btn, files):
-                return lambda: on_sub_button_click(btn, files)
+        for sub_name, file_list in subcategories.items():
+            def make_sub_command(btn, fl, cat=area):
+                return lambda: on_sub_button_click(btn, fl, cat)
 
             sub_btn = tk.Button(
                 sub_frame, text=sub_name,
@@ -1208,33 +1483,28 @@ def create_new_window_image_daviteq(title):
                 relief="raised",
                 bg="white", fg="black",
                 font=("Arial", 10, "bold"), bd=1,
-                activebackground="#e0e0e0",
-                command=make_sub_command(None, file_dict)
+                activebackground="#e0e0e0"
             )
             sub_btn.pack(padx=10, pady=3)
-            sub_btn.config(command=make_sub_command(sub_btn, file_dict))
+            sub_btn.config(command=make_sub_command(sub_btn, file_list))
 
-
+    # Chọn danh mục đầu tiên để hiển thị
     first_category = list(category_images.keys())[0]
     toggle_sub_buttons(first_category)
 
-def create_documentary_viewer(creds, service):
-    files = list_files(service)
+# == Cửa sổ tài liệu ==
+def create_documentary_viewer(token, share_url):
+    files = list_files_from_url(token, share_url)  # Lấy file từ OneDrive Azure
     filtered_files = files.copy()
 
     # ==== Hàm tách tag từ tên file ====
     def extract_tags(filename):
-        # Tìm các tag nằm trong ngoặc đơn đầu tên file, ví dụ: (ADV)(GUIDE)
         tags = re.findall(r'\(([^)]+)\)', filename)
         return ", ".join(tags) if tags else "Khác"
 
     def update_table(*args):
         keyword = search_var.get().lower().strip()
         current_mode = mode.get()
-
-        # Nếu đang ở chế độ tìm theo STT mà ô tìm kiếm rỗng, không làm gì cả
-        if current_mode == "number" and keyword == "":
-            return
 
         tree.delete(*tree.get_children())
         new_filtered = []
@@ -1249,14 +1519,13 @@ def create_documentary_viewer(creds, service):
                 if 1 <= idx <= len(files):
                     new_filtered = [files[idx - 1]]
             else:
-                # Không hợp lệ => hiển thị danh sách cũ (giữ nguyên)
                 return
         else:
             new_filtered = files.copy()
 
         for idx, f in enumerate(new_filtered, start=1):
             tag_label = extract_tags(f["name"])
-            filepath = os.path.join(ARCHIVE_DIR, f["name"])
+            filepath = os.path.join(DOCUMENTARY_ARCHIVE_DIR, f["name"])
 
             is_downloaded = os.path.exists(filepath)
             status_text = "✅ Đã tải" if is_downloaded else "❌ Chưa tải"
@@ -1274,13 +1543,29 @@ def create_documentary_viewer(creds, service):
         item = tree.item(selected)
         index = int(item['values'][0]) - 1
         file = filtered_files[index]
-        download_file(creds.token, file['id'], file['name'])
+
+        # Gọi hàm download_file gốc (không sửa)
+        temp_path = download_file(token, file['id'], file['name'])
+        if not temp_path:
+            messagebox.showerror("Lỗi", f"Tải file {file['name']} thất bại!")
+            return
+
+        # Đích: thư mục DOCUMENTARY_ARCHIVE_DIR
+        final_path = os.path.join(DOCUMENTARY_ARCHIVE_DIR, file['name'])
+    
+        # Nếu file đã tồn tại thì ghi đè
+        try:
+            shutil.move(temp_path, final_path)  # chuyển sang thư mục đích
+        except Exception as e:
+            shutil.copy2(temp_path, final_path)  # fallback copy
+            os.remove(temp_path)
         update_table()
 
     root = tk.Tk()
-    root.title("📁 RMC DRIVE VIEWER")
+    root.title("📁 RMC DRIVE VIEWER (OneDrive - Azure)")
     root.geometry("900x600")
 
+    # ==== Thanh tìm kiếm ====
     frame_search = tk.Frame(root)
     frame_search.pack(pady=5, padx=5, fill="x")
 
@@ -1291,11 +1576,13 @@ def create_documentary_viewer(creds, service):
     btn_refresh = tk.Button(frame_search, text="🔄 Làm mới", font=("Arial", 12), command=update_table)
     btn_refresh.pack(side="right", padx=5)
 
-    btn_open_folder = tk.Button(frame_search, text="📂", font=("Arial", 12), command=open_archive_folder)
+    btn_open_folder = tk.Button(frame_search, text="📂", font=("Arial", 12),
+                                command=lambda: os.startfile(DOCUMENTARY_ARCHIVE_DIR))
     btn_open_folder.pack(side="right", padx=5)
 
     entry_search.bind("<KeyRelease>", update_table)
 
+    # ==== Bộ lọc tìm kiếm ====
     frame_filter = tk.Frame(root)
     frame_filter.pack(pady=5)
 
@@ -1304,6 +1591,7 @@ def create_documentary_viewer(creds, service):
     tk.Radiobutton(frame_filter, text="🔍 Tìm theo loại", variable=mode, value="type", command=update_table).pack(side="left", padx=10)
     tk.Radiobutton(frame_filter, text="🔍 Tìm theo stt", variable=mode, value="number", command=update_table).pack(side="left", padx=10)
 
+    # ==== Bảng file ====
     frame_table = tk.Frame(root)
     frame_table.pack(pady=10, fill="both", expand=True)
 
@@ -1329,89 +1617,13 @@ def create_documentary_viewer(creds, service):
     tree.tag_configure("downloaded", background="#d0f0c0")  # Xanh nhạt
     tree.tag_configure("not_downloaded", background="#f7c6c7")  # Đỏ nhạt
 
-
     tree.pack(fill="both", expand=True)
     tree.bind("<Double-1>", handle_download)
 
     update_table()
     root.mainloop()
 
-# ==== HÀM BẬT TẮT DANH SÁCH ====
-def toggle_list1(state):
-    if list2_state["visible"]:
-        toggle_sub_buttons(list2_state, list2_files)
-    if list3_state["visible"]:
-        toggle_sub_buttons(list3_state, list3_files)
-    toggle_sub_buttons(state, list1_files)
-
-def toggle_list2(state):
-    if list1_state["visible"]:
-        toggle_sub_buttons(list1_state, list1_files)
-    if list3_state["visible"]:
-        toggle_sub_buttons(list3_state, list3_files)
-    toggle_sub_buttons(state, list2_files)
-
-def toggle_list3(state):
-    if list1_state["visible"]:
-        toggle_sub_buttons(list1_state, list1_files)
-    if list2_state["visible"]:
-        toggle_sub_buttons(list2_state, list2_files)
-    toggle_sub_buttons(state, list3_files)
-
-# ==== SAO CHÉP VĂN BẢN ====
-def copy_text_to_clipboard():
-    root.clipboard_clear()
-    text = output_text.get("1.0", tk.END)
-    root.clipboard_append(text)
-    root.update()
-
-# ==== XOÁ VĂN BẢN ====
-def clear_text_output():
-    output_text.config(state='normal')
-    output_text.delete("1.0", tk.END)
-    output_text.config(state='disabled')
-    reset_timer()
-
-# ==== TẠO CÁC NÚT CHO DANH SÁCH ====
-def toggle_sub_buttons(state, item_dict):
-    if not state["visible"]:
-        for label, file_id in item_dict.items():
-            if "NO_ERROR" in label:
-                def cmd(fid=file_id):
-                    show_text_from_drive(fid, is_no_error=True, start_timer_flag=False)
-            else:
-                def cmd(fid=file_id):
-                    show_text_from_drive(fid, start_timer_flag=True)
-            btn = tk.Button(item_frame, text=label, font=("Arial", 12), command=cmd)
-            btn.pack(anchor='w', pady=1)
-            state["buttons"].append(btn)
-        state["visible"] = True
-        state["indicator_canvas"].itemconfig(state["indicator_id"], fill='green')
-    else:
-        for btn in state["buttons"]:
-            btn.pack_forget()
-        state["buttons"].clear()
-        state["visible"] = False
-        state["indicator_canvas"].itemconfig(state["indicator_id"], fill='red')
-
-# ==== TRẠNG THÁI ====
-list1_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
-list2_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
-list3_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
-
-# ==== TẠO DANH SÁCH GIAO DIỆN ====
-create_list_block(button_frame, "ATQB", list1_files, toggle_list1, list1_state)
-create_list_block(button_frame, "ABDNC", list2_files, toggle_list2, list2_state)
-create_list_block(button_frame, "ANVL", list3_files, toggle_list3, list3_state)
-
-# === MỞ SẴN DANH SÁCH ATQB ===
-toggle_sub_buttons(list1_state, list1_files)
-
-# ==== Phân bổ các nút bấm trong khung ====
-# Nhóm bên trái: Copy và Clear
-left_controls = tk.Frame(cccc_frame)
-left_controls.pack(side="left")
-
+# === Khu vực tạo các thành phần =======================================================================================================================================
 copy_button = tk.Button(left_controls, text="Copy", font=("Arial", 10, "bold"), bg="#4CAF50", fg="white",
                         command=copy_text_to_clipboard, width=15)
 copy_button.pack(side="left", padx=(0, 5))
@@ -1419,10 +1631,6 @@ copy_button.pack(side="left", padx=(0, 5))
 clear_button = tk.Button(left_controls, text="Clear", font=("Arial", 10, "bold"), bg="#f44336", fg="white",
                          command=clear_text_output, width=15)
 clear_button.pack(side="left")
-
-# Nhóm bên phải: Catch, Clock, Continue
-right_controls = tk.Frame(cccc_frame)
-right_controls.pack(side="right")
 
 # Catch (ngoài cùng bên phải)
 catch_button = tk.Button(right_controls, text="Catch", font=("Arial", 10, "bold"), bg="#029B82", fg="white",
@@ -1440,14 +1648,19 @@ continue_button.pack(side='right', padx=5)
 
 # ==== NÚT CONTACT ====
 def contact_action():
+    if fill_box(1):  # Chỉ tô nếu ô 0 đã tô
         create_new_window_contact("Contact")
+        on_category_click()
+        reset_timer()
 contact_button = tk.Button(left_button_frame, text="Contact", font=("Arial", 12, "bold"),
                            bg="#2196F3", fg="white", width=10, command=lambda: contact_action())
 contact_button.pack(pady=5)
 
 # ==== NÚT STATUS ====
 def status_action():
+    if fill_box(2):  # Chỉ tô nếu ô 1 đã tô
         create_new_window_status("Status")
+        on_category_click()
         reset_timer()
 status_button = tk.Button(left_button_frame, text="Status", font=("Arial", 12, "bold"),
                           bg="#FF9800", fg="white", width=10, command=lambda: status_action())
@@ -1460,21 +1673,39 @@ note_button = tk.Button(left_button_frame, text="Note", font=("Arial", 12, "bold
                         bg="#873e23", fg="white", width=10, command=lambda: note_action())
 note_button.pack(pady=5)
 
-# ==== NÚT TRUY CẬP KHO ẢNH DAVITEQ ====
+# ==== NÚT KHO ẢNH DAVITEQ ====
 def image_daviteq_action():
     create_new_window_image_daviteq("DAVITEQ")
 image_daviteq_button = tk.Button(left_button_frame, text="DAVITEQ", font=("Arial", 12, "bold"),
                                  bg="#3fc4f3", fg="white", width=10, command=lambda: image_daviteq_action())
 image_daviteq_button.pack(pady=5)
 
-# ==== NÚT  VÀO THƯ VIỆN TÀI LIỆU RMC====
+# ==== NÚT VAOF KHO DOCUMENTARY ====
 def rmc_drive_viewer_action():
-    creds, service = authenticate()
-    create_documentary_viewer(creds, service)
-rmc_drive_viewer_button = tk.Button(left_button_frame, text="Document", font=("Arial", 12, "bold"),
-                                    bg="#5A780B", fg="white", width=10, command=lambda: rmc_drive_viewer_action())
+    create_documentary_viewer(access_token, documentary_archive_url)
+
+rmc_drive_viewer_button = tk.Button(
+    left_button_frame,
+    text="Document",
+    font=("Arial", 12, "bold"),
+    bg="#5A780B", fg="white",
+    width=10,
+    command=rmc_drive_viewer_action
+)
 rmc_drive_viewer_button.pack(pady=5)
 
+# ==== NÚT XÁC NHẬN HÀNH ĐỘNG ====
+def confirm_action():
+    for i in range(3, 6):
+        if not box_filled[i]:
+            if fill_box(i):
+                on_category_click()
+                break  # Đảm bảo chỉ tô một ô
+            else:
+                break  # Dừng lại nếu chưa đủ điều kiện
+confirm_button = tk.Button(main_frame, text="Xác nhận", font=("Arial", 12, "bold"),
+                           bg="#4CAF50", fg="white", command=confirm_action)
+confirm_button.pack(pady=10)
 
 # Bắt đầu cập nhật đồng hồ
 update_clock()

@@ -16,7 +16,11 @@ from tkinter import ttk, messagebox
 import json
 import schedule
 
-# ==== Thiết lập và Cấu hình Azure AD, OneDrive, đường dẫn lưu trữ và hơn thế nữa... =============================================================================================================
+# ==== Khởi tạo Tkinter root trước ====
+root = tk.Tk()
+root.withdraw()   # Ẩn cửa sổ chính ban đầu 
+
+# ==== Thiết lập và Cấu hình Azure AD, OneDrive, đường dẫn lưu trữ và hơn thế nữa =============================================================================================================
 # == lINK ONNDRIVE OF REPORT FORM ==
 nvl_report_form_share_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/REPORT%20FORM/NVL%20REPORT%20FORM"
 tqb_report_form_share_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/REPORT%20FORM/TQB%20REPORT%20FORM"
@@ -53,10 +57,10 @@ CLIENT_ID = "ac4edccf-a8ee-41aa-bcc4-6603c4bebae1"
 TENANT_ID = "5983a1d2-f46b-492d-a9b3-7e2f3609d20b"
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
 GRAPH_SCOPES = ["Files.Read"]
+CACHE_DIR = r"D:\RMC_Assistant_ver1.1\Cache"
+CACHE_FILE = os.path.join(CACHE_DIR, "token_cache.bin")
 
 # ============ Đường dân local trên máy tính để lưu trữ cache ================
-CACHE_FILE = "token_cache.bin"
-
 # == đường dẫn lưu trữ các biểu mẫu ==
 REPORT_FORM_DIR = r"D:\RMC_Assistant_ver1.1\Report_Form_Cache"
 
@@ -73,6 +77,9 @@ IMAGE_AL_ARCHIVE_DIR = r"D:\RMC_Assistant_ver1.1\IMAGE\ALARMPOINT"
 DOCUMENTARY_ARCHIVE_DIR = r"D:\RMC_Assistant_ver1.1\DOCUMENTARY"
 
 # === Khu vực tạo các thư mục lưu trữ nếu chưa có ===
+# Tạo thư mục lưu trữ cache
+os.makedirs(CACHE_DIR, exist_ok=True)
+
 # Tạo thư lục lưu trữ biểu mẫu
 os.makedirs(REPORT_FORM_DIR, exist_ok=True)
 
@@ -88,9 +95,148 @@ os.makedirs(IMAGE_AL_ARCHIVE_DIR, exist_ok=True)
 # Tạo thư mục lưu trữ tài liệu
 os.makedirs(DOCUMENTARY_ARCHIVE_DIR, exist_ok=True)
 
+# ==== Đăng nhập, tải file và xử lý OneDrive bằng Azure ===========================================================================
+# == Cửa sổ đăng nhập Azure AD trên thiết bị mới ==
+def show_device_login(flow):
+    win = tk.Toplevel(root)   # ✅ gắn với root chính
+    win.title("🔑 Đăng nhập Azure AD")
+    win.geometry("500x300")
+    win.grab_set()  # ✅ chặn tương tác ngoài login
+
+    # Frame 1: Thông báo
+    frame1 = tk.Frame(win, pady=10)
+    frame1.pack(fill="x")
+    tk.Label(frame1, text="Bạn đang đăng nhập trên một thiết bị mới",
+             font=("Arial", 12, "bold"), fg="red").pack()
+
+    # Frame 2: Văn bản truy cập
+    frame2 = tk.Frame(win, pady=5)
+    frame2.pack(fill="x")
+    tk.Label(frame2, text="Truy cập vào liên kết dưới đây:", font=("Arial", 11)).pack()
+
+    # Frame 3: Link
+    frame3 = tk.Frame(win, pady=5)
+    frame3.pack(fill="x")
+    entry_link = tk.Entry(frame3, font=("Arial", 11), width=50)
+    entry_link.insert(0, flow["verification_uri"])
+    entry_link.pack(padx=10)
+
+    # Frame 4: Văn bản nhập mã
+    frame4 = tk.Frame(win, pady=5)
+    frame4.pack(fill="x")
+    tk.Label(frame4, text="Nhập mã sau vào trang web:", font=("Arial", 11)).pack()
+
+    # Frame 5: Mã đăng nhập
+    frame5 = tk.Frame(win, pady=5)
+    frame5.pack(fill="x")
+    entry_code = tk.Entry(frame5, font=("Arial", 14, "bold"), width=20, justify="center")
+    entry_code.insert(0, flow["user_code"])
+    entry_code.pack(padx=10)
+
+    # Copy link và code
+    def copy_link():
+        win.clipboard_clear()
+        win.clipboard_append(flow["verification_uri"])
+        messagebox.showinfo("Copy", "Đã copy liên kết vào clipboard!")
+
+    def copy_code():
+        win.clipboard_clear()
+        win.clipboard_append(flow["user_code"])
+        messagebox.showinfo("Copy", "Đã copy mã đăng nhập vào clipboard!")
+
+    btn_frame = tk.Frame(win, pady=10)
+    btn_frame.pack()
+    ttk.Button(btn_frame, text="📋 Copy link", command=copy_link).grid(row=0, column=0, padx=10)
+    ttk.Button(btn_frame, text="📋 Copy mã", command=copy_code).grid(row=0, column=1, padx=10)
+
+    return win
+
+# ==== Hàm đăng nhập Azure AD ====
+def authenticate():
+    cache = msal.SerializableTokenCache()
+    if os.path.exists(CACHE_FILE):
+        cache.deserialize(open(CACHE_FILE, "r").read())
+
+    app = msal.PublicClientApplication(CLIENT_ID, authority=AUTHORITY, token_cache=cache)
+    accounts = app.get_accounts()
+
+    if accounts:
+        result = app.acquire_token_silent(GRAPH_SCOPES, account=accounts[0])
+        return result
+    else:
+        flow = app.initiate_device_flow(scopes=GRAPH_SCOPES)
+        if "user_code" not in flow:
+            raise Exception("Không khởi tạo được Device Flow")
+
+        win = show_device_login(flow)
+        result_container = {"result": None}
+
+        def do_login():
+            result = app.acquire_token_by_device_flow(flow)
+            result_container["result"] = result
+
+        threading.Thread(target=do_login, daemon=True).start()
+
+        def check_result():
+            if result_container["result"] is not None:
+                win.destroy()  # ✅ đóng UI trong main thread
+                return result_container["result"]
+            else:
+                root.after(500, check_result)  # lặp lại kiểm tra
+
+        root.after(500, check_result)
+        win.wait_window()
+        return result_container["result"]
+
+# ==== Đăng nhập Azure ====
+try:
+    result = authenticate()
+    if "access_token" not in result:
+        raise Exception("Đăng nhập thất bại")
+    access_token = result["access_token"]
+except Exception as e:
+    messagebox.showerror("Lỗi", str(e))
+    root.destroy()
+    exit()
+
+# ==== Lấy danh sách file từ link chia sẻ ====
+def list_files_from_url(token, share_url):
+    encoded_url = base64.b64encode(share_url.encode("utf-8")).decode("utf-8")
+    encoded_url = encoded_url.rstrip("=").replace("/", "_").replace("+", "-")
+
+    url = f"https://graph.microsoft.com/v1.0/shares/u!{encoded_url}/driveItem/children"
+    headers = {"Authorization": f"Bearer {token}"}
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        items = r.json().get("value", [])
+        return [{"id": item["id"], "name": item["name"]} for item in items if "file" in item]
+    else:
+        return []
+
+# ==== Tải file từ OneDrive ====
+def download_file(token, file_id, filename):
+
+    # Đường dẫn đến file cache
+    cache_path = os.path.join(REPORT_FORM_DIR, filename)
+    if os.path.exists(cache_path):
+        return cache_path
+
+    url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content"
+    headers = {"Authorization": f"Bearer {token}"}
+    r = requests.get(url, headers=headers, stream=True)
+
+    if r.status_code == 200:
+        filepath = os.path.join(REPORT_FORM_DIR, filename)
+        with open(filepath, "wb") as f:
+            for chunk in r.iter_content(1024):
+                f.write(chunk)
+        return filepath  # ✅ Thêm return ở đây
+    else:
+        return None
+
 # === Khu vực tạo Frame để lưu trữ các thành phần ===============================================================================================
 # Tạo cửa sổ chính
-root = tk.Tk()
+root.deiconify()
 root.title("RMC Report Assistant")
 root.geometry("1080x800")
 
@@ -107,7 +253,7 @@ left_button_frame = tk.Frame(content_frame)
 left_button_frame.pack(side="left", fill="y", padx=10, pady=10)
 
 # === Text để hiển thị văn bản ===
-output_text = tk.Text(content_frame, font=("Arial", 13), width=60, height=20, wrap="word")
+output_text = tk.Text(content_frame, font=("Arial", 13), width=60, height=15, wrap="word")
 output_text.pack(side='left', pady=(10, 0), padx=10)
 output_text.config(state='disabled')
 
@@ -252,70 +398,6 @@ timer_label.pack()
 
 countdown_job = None
 time_left = 300  # 5 phút = 300 giây
-
-# ==== Đăng nhập, tải file và xử lý OneDrive bằng Azure ===========================================================================
-# ==== Hàm đăng nhập Azure AD ====
-def authenticate():
-    cache = msal.SerializableTokenCache()
-    if os.path.exists(CACHE_FILE):
-        cache.deserialize(open(CACHE_FILE, "r").read())
-
-    app = msal.PublicClientApplication(CLIENT_ID, authority=AUTHORITY, token_cache=cache)
-    accounts = app.get_accounts()
-
-    if accounts:
-        result = app.acquire_token_silent(GRAPH_SCOPES, account=accounts[0])
-    else:
-        flow = app.initiate_device_flow(scopes=GRAPH_SCOPES)
-        if "user_code" not in flow:
-            raise Exception("Không khởi tạo được Device Flow")
-        print(flow["message"])
-        result = app.acquire_token_by_device_flow(flow)
-
-    if "access_token" in result:
-        with open(CACHE_FILE, "w") as f:
-            f.write(cache.serialize())
-        return result["access_token"]
-    else:
-        raise Exception("Đăng nhập thất bại: " + str(result))
-
-# Đăng nhập Azure
-access_token = authenticate()
-
-# ==== Lấy danh sách file từ link chia sẻ ====
-def list_files_from_url(token, share_url):
-    encoded_url = base64.b64encode(share_url.encode("utf-8")).decode("utf-8")
-    encoded_url = encoded_url.rstrip("=").replace("/", "_").replace("+", "-")
-
-    url = f"https://graph.microsoft.com/v1.0/shares/u!{encoded_url}/driveItem/children"
-    headers = {"Authorization": f"Bearer {token}"}
-    r = requests.get(url, headers=headers)
-    if r.status_code == 200:
-        items = r.json().get("value", [])
-        return [{"id": item["id"], "name": item["name"]} for item in items if "file" in item]
-    else:
-        return []
-
-# ==== Tải file từ OneDrive ====
-def download_file(token, file_id, filename):
-
-    # Đường dẫn đến file cache
-    cache_path = os.path.join(REPORT_FORM_DIR, filename)
-    if os.path.exists(cache_path):
-        return cache_path
-
-    url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content"
-    headers = {"Authorization": f"Bearer {token}"}
-    r = requests.get(url, headers=headers, stream=True)
-
-    if r.status_code == 200:
-        filepath = os.path.join(REPORT_FORM_DIR, filename)
-        with open(filepath, "wb") as f:
-            for chunk in r.iter_content(1024):
-                f.write(chunk)
-        return filepath  # ✅ Thêm return ở đây
-    else:
-        return None
 
 # === Hiển thị file văn bản từ OneDrive ===========================================================================
 # ==== LẤY DANH SÁCH FILE ONE DRIVE THEO TÊN ====
@@ -536,6 +618,7 @@ create_list_block(button_frame, "ABNC", bdnc_report_form_files, toggle_list3, li
 toggle_sub_buttons(list1_state, nvl_report_form_files, auto_select_first=True)
 
 # ==== khu vực tạo các cửa sổ chức năng ================================================================================================================================
+
 # == Cửa sổ contact ==
 def create_new_window_contact(title, content=None):
     new_window = tk.Toplevel(root)

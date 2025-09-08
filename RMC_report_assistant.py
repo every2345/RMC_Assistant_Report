@@ -137,12 +137,10 @@ def show_device_login(flow):
     def copy_link():
         win.clipboard_clear()
         win.clipboard_append(flow["verification_uri"])
-        messagebox.showinfo("Copy", "Đã copy liên kết vào clipboard!")
 
     def copy_code():
         win.clipboard_clear()
         win.clipboard_append(flow["user_code"])
-        messagebox.showinfo("Copy", "Đã copy mã đăng nhập vào clipboard!")
 
     btn_frame = tk.Frame(win, pady=10)
     btn_frame.pack()
@@ -162,7 +160,6 @@ def authenticate():
 
     if accounts:
         result = app.acquire_token_silent(GRAPH_SCOPES, account=accounts[0])
-        return result
     else:
         flow = app.initiate_device_flow(scopes=GRAPH_SCOPES)
         if "user_code" not in flow:
@@ -179,14 +176,21 @@ def authenticate():
 
         def check_result():
             if result_container["result"] is not None:
-                win.destroy()  # ✅ đóng UI trong main thread
-                return result_container["result"]
+                win.destroy()
             else:
-                root.after(500, check_result)  # lặp lại kiểm tra
+                root.after(500, check_result)
 
         root.after(500, check_result)
         win.wait_window()
-        return result_container["result"]
+        result = result_container["result"]
+
+    # ✅ Lưu lại cache sau khi login hoặc refresh thành công
+    if cache.has_state_changed:
+        with open(CACHE_FILE, "w") as f:
+            f.write(cache.serialize())
+
+    return result
+
 
 # ==== Đăng nhập Azure ====
 try:

@@ -191,7 +191,6 @@ def authenticate():
 
     return result
 
-
 # ==== Đăng nhập Azure ====
 try:
     result = authenticate()
@@ -203,8 +202,74 @@ except Exception as e:
     root.destroy()
     exit()
 
+## Sau một thời gian chương trình treo (idle) thì access_token hết hạn (thường là 1 giờ), nên không lấy được dữ liệu thường xuyên##
+# ==== Quản lý phiên làm việc với Azure Graph API ====
+class GraphSession:
+    def __init__(self, client_id, authority, scopes, cache_file):
+        self.client_id = client_id
+        self.authority = authority
+        self.scopes = scopes
+        self.cache_file = cache_file
+        self.cache = msal.SerializableTokenCache()
+        if os.path.exists(cache_file):
+            self.cache.deserialize(open(cache_file, "r").read())
+        self.app = msal.PublicClientApplication(
+            client_id, authority=authority, token_cache=self.cache
+        )
+        self.account = None
+        self.token = None
+
+    def save_cache(self):
+        if self.cache.has_state_changed:
+            with open(self.cache_file, "w") as f:
+                f.write(self.cache.serialize())
+
+    def ensure_token(self):
+        """Đảm bảo luôn có access_token hợp lệ (refresh khi cần)."""
+        if self.token and "access_token" in self.token:
+            return self.token["access_token"]
+
+        accounts = self.app.get_accounts()
+        if accounts:
+            self.account = accounts[0]
+            self.token = self.app.acquire_token_silent(self.scopes, account=self.account)
+
+        if not self.token:
+            flow = self.app.initiate_device_flow(scopes=self.scopes)
+            if "user_code" not in flow:
+                raise Exception("Không khởi tạo được Device Flow")
+            win = show_device_login(flow)
+            result_container = {"result": None}
+
+            def do_login():
+                result = self.app.acquire_token_by_device_flow(flow)
+                result_container["result"] = result
+
+            threading.Thread(target=do_login, daemon=True).start()
+
+            def check_result():
+                if result_container["result"] is not None:
+                    win.destroy()
+                else:
+                    root.after(500, check_result)
+
+            root.after(500, check_result)
+            win.wait_window()
+            self.token = result_container["result"]
+
+        if not self.token or "access_token" not in self.token:
+            raise Exception("Đăng nhập Azure thất bại")
+
+        self.save_cache()
+        return self.token["access_token"]
+
+# ==== Khởi tạo session Azure ====
+graph_session = GraphSession(CLIENT_ID, AUTHORITY, GRAPH_SCOPES, CACHE_FILE)
+
+# ==== Sử dụng trong các hàm API ====
 # ==== Lấy danh sách file từ link chia sẻ ====
-def list_files_from_url(token, share_url):
+def list_files_from_url(share_url):
+    token = graph_session.ensure_token()
     encoded_url = base64.b64encode(share_url.encode("utf-8")).decode("utf-8")
     encoded_url = encoded_url.rstrip("=").replace("/", "_").replace("+", "-")
 
@@ -218,9 +283,8 @@ def list_files_from_url(token, share_url):
         return []
 
 # ==== Tải file từ OneDrive ====
-def download_file(token, file_id, filename):
-
-    # Đường dẫn đến file cache
+def download_file(file_id, filename):
+    token = graph_session.ensure_token()
     cache_path = os.path.join(REPORT_FORM_DIR, filename)
     if os.path.exists(cache_path):
         return cache_path
@@ -230,11 +294,10 @@ def download_file(token, file_id, filename):
     r = requests.get(url, headers=headers, stream=True)
 
     if r.status_code == 200:
-        filepath = os.path.join(REPORT_FORM_DIR, filename)
-        with open(filepath, "wb") as f:
+        with open(cache_path, "wb") as f:
             for chunk in r.iter_content(1024):
                 f.write(chunk)
-        return filepath  # ✅ Thêm return ở đây
+        return cache_path
     else:
         return None
 
@@ -405,8 +468,8 @@ time_left = 300  # 5 phút = 300 giây
 
 # === Hiển thị file văn bản từ OneDrive ===========================================================================
 # ==== LẤY DANH SÁCH FILE ONE DRIVE THEO TÊN ====
-def build_device_mapping(token, share_url, device_names):
-    files = list_files_from_url(token, share_url)
+def build_device_mapping(share_url, device_names):
+    files = list_files_from_url(share_url)  # ✅ chỉ truyền share_url
     mapping = {}
     for dev in device_names:
         # Tìm file nào có tên chứa tên thiết bị (không phân biệt hoa thường)
@@ -418,7 +481,7 @@ def build_device_mapping(token, share_url, device_names):
 # ==== CHỨC NĂNG HIỂN THỊ VĂN BẢN VÀ THỜI GIAN====
 def show_text_from_drive(file_id, filename, is_no_error=False, start_timer_flag=True):
     try:
-        file_path = download_file(access_token, file_id, filename)  # tải từ OneDrive
+        file_path = download_file(file_id, filename)  # tải từ OneDrive
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
 
@@ -463,9 +526,9 @@ contact_sample = ["CONTACT_FORM"]
 confirm_sample = ["CONFIRM_FORM"]
 
 # Mapping riêng cho từng khu vực
-nvl_report_form_files = build_device_mapping(access_token, nvl_report_form_share_url, device_names_anvl)
-tqb_report_form_files = build_device_mapping(access_token, tqb_report_form_share_url, device_names_atqb)
-bdnc_report_form_files = build_device_mapping(access_token, bdnc_report_form_share_url, device_names_abnc)
+nvl_report_form_files = build_device_mapping(nvl_report_form_share_url, device_names_anvl)
+tqb_report_form_files = build_device_mapping(tqb_report_form_share_url, device_names_atqb)
+bdnc_report_form_files = build_device_mapping(bdnc_report_form_share_url, device_names_abnc)
 
 # ==== TẠO GIAO DIỆN DANH SÁCH ====
 active_parent_button = None
@@ -696,7 +759,7 @@ def create_new_window_contact(title, content=None):
 
         try:
             # === Lấy danh sách file trong thư mục OneDrive ===
-            files = list_files_from_url(access_token, hotlines_and_confirm_form_url)
+            files = list_files_from_url(hotlines_and_confirm_form_url)
 
             # === Tìm file confirm ===
             target_name = next(iter(contact_sample))  # ví dụ "CONFIRM_FORM"
@@ -709,7 +772,7 @@ def create_new_window_contact(title, content=None):
             filename = target_file["name"]
 
             # === Tải file về ===
-            file_path = download_file(access_token, file_id, filename)
+            file_path = download_file(file_id, filename)
 
             if not file_path or not os.path.exists(file_path):
                 raise FileNotFoundError("File confirm không tồn tại sau khi tải.")
@@ -861,7 +924,7 @@ def create_new_window_status(title, content=None):
 
         # === Tải file confirm từ OneDrive ===
         # === Lấy danh sách file trong thư mục OneDrive ===
-        files = list_files_from_url(access_token, hotlines_and_confirm_form_url)
+        files = list_files_from_url(hotlines_and_confirm_form_url)
 
         # === Tìm file confirm ===
         target_name = next(iter(confirm_sample))  # "CONFIRM_FORM"
@@ -874,7 +937,7 @@ def create_new_window_status(title, content=None):
         filename = target_file["name"]
 
         # === Tải file về ===
-        file_path = download_file(access_token, file_id, filename)
+        file_path = download_file(file_id, filename)
 
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -1418,7 +1481,7 @@ def create_new_window_image_daviteq(title):
 
             # Nếu chưa có thì tải về
             if not os.path.exists(local_path):
-                img_path = download_file(access_token, file["id"], local_path)
+                img_path = download_file(file["id"], local_path)
             else:
                 img_path = local_path
 
@@ -1528,23 +1591,23 @@ def create_new_window_image_daviteq(title):
     # ✅ Lấy dữ liệu từ OneDrive (thay Google Drive)
     category_images = {
         "GATEWAY": {
-            "BDNC": list_files_from_url(access_token, gateway_bdnc_url),
-            "TQB": list_files_from_url(access_token, gateway_tqb_url),
-            "NVL": list_files_from_url(access_token, gateway_nvl_url),
+            "BDNC": list_files_from_url(gateway_bdnc_url),
+            "TQB": list_files_from_url(gateway_tqb_url),
+            "NVL": list_files_from_url(gateway_nvl_url),
         },
         "LAYOUT": {
-            "BDNC": list_files_from_url(access_token, layout_bdnc_url),
-            "TQB": list_files_from_url(access_token, layout_tqb_url),
-            "NVL": list_files_from_url(access_token, layout_nvl_url),
+            "BDNC": list_files_from_url(layout_bdnc_url),
+            "TQB": list_files_from_url(layout_tqb_url),
+            "NVL": list_files_from_url(layout_nvl_url),
         },
         "SENSOR": {
-            "BDNC": list_files_from_url(access_token, sensor_bdnc_url),
-            "TQB": list_files_from_url(access_token, sensor_tqb_url),
-            "NVL": list_files_from_url(access_token, sensor_nvl_url),
+            "BDNC": list_files_from_url(sensor_bdnc_url),
+            "TQB": list_files_from_url(sensor_tqb_url),
+            "NVL": list_files_from_url(sensor_nvl_url),
         },
         "ALARMPOINT": {
-            "TQB": list_files_from_url(access_token, al_tqb_url),
-            "NVL": list_files_from_url(access_token, al_nvl_url),
+            "TQB": list_files_from_url(al_tqb_url),
+            "NVL": list_files_from_url(al_nvl_url),
         }
     }
 
@@ -1580,8 +1643,8 @@ def create_new_window_image_daviteq(title):
     toggle_sub_buttons(first_category)
 
 # == Cửa sổ tài liệu ==
-def create_documentary_viewer(token, share_url):
-    files = list_files_from_url(token, share_url)  # Lấy file từ OneDrive Azure
+def create_documentary_viewer(share_url):
+    files = list_files_from_url(share_url)  # Lấy file từ OneDrive Azure
     filtered_files = files.copy()
 
     # ==== Hàm tách tag từ tên file ====
@@ -1632,7 +1695,7 @@ def create_documentary_viewer(token, share_url):
         file = filtered_files[index]
 
         # Gọi hàm download_file gốc (không sửa)
-        temp_path = download_file(token, file['id'], file['name'])
+        temp_path = download_file(file['id'], file['name'])
         if not temp_path:
             messagebox.showerror("Lỗi", f"Tải file {file['name']} thất bại!")
             return
@@ -1769,7 +1832,7 @@ image_daviteq_button.pack(pady=5)
 
 # ==== NÚT VAOF KHO DOCUMENTARY ====
 def rmc_drive_viewer_action():
-    create_documentary_viewer(access_token, documentary_archive_url)
+    create_documentary_viewer(documentary_archive_url)
 
 rmc_drive_viewer_button = tk.Button(
     left_button_frame,

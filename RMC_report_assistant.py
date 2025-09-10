@@ -226,15 +226,23 @@ class GraphSession:
 
     def ensure_token(self):
         """Đảm bảo luôn có access_token hợp lệ (refresh khi cần)."""
+        # Nếu đã có token thì check hạn
         if self.token and "access_token" in self.token:
-            return self.token["access_token"]
+            expires_at = self.token.get("expires_on")
+            if expires_at:
+                import time
+                if int(expires_at) > int(time.time()) + 60:
+                    # Token còn sống > 60s thì dùng tiếp
+                    return self.token["access_token"]
 
+        # Nếu chưa có hoặc hết hạn → thử silent refresh
         accounts = self.app.get_accounts()
         if accounts:
             self.account = accounts[0]
             self.token = self.app.acquire_token_silent(self.scopes, account=self.account)
 
-        if not self.token:
+        # Nếu vẫn chưa có token hợp lệ → login lại
+        if not self.token or "access_token" not in self.token:
             flow = self.app.initiate_device_flow(scopes=self.scopes)
             if "user_code" not in flow:
                 raise Exception("Không khởi tạo được Device Flow")
@@ -686,7 +694,7 @@ toggle_sub_buttons(list1_state, nvl_report_form_files, auto_select_first=True)
 
 # ==== khu vực tạo các cửa sổ chức năng ================================================================================================================================
 
-# == Cửa sổ contact ==
+# == Cửa sổ cho mục contact ==
 def create_new_window_contact(title, content=None):
     new_window = tk.Toplevel(root)
     new_window.title(title)
@@ -822,7 +830,7 @@ def create_new_window_contact(title, content=None):
                           bg="green", fg="white", command=handle_ok)
     ok_button.pack(pady=10)
 
-# == Cửa sổ status ==
+# == Cửa sổ mục status ==
 def create_new_window_status(title, content=None):
     new_window = tk.Toplevel(root)
     new_window.title(title)
@@ -985,7 +993,7 @@ def create_new_window_status(title, content=None):
                           bg="green", fg="white", command=handle_ok)
     ok_button.pack(pady=10)
 
-# == Cửa sổ note ==
+# == Cửa sổ mục note ==
 def create_new_window_note():
     # Thư mục lưu dữ liệu
     DATA_DIR = NOTE_ARCHIVE_DIR
@@ -1455,7 +1463,7 @@ def create_new_window_note():
             reminder.get("delete_mode", "delete")   # truyền delete_mode (mặc định delete nếu không có)
         )
 
-# == Cửa sổ hình ảnh Daviteq ==
+# == Cửa sổ hình ảnh các thiết bị của Daviteq tương ứng với từng khu vực cũng như layout phân bổ thiết bị ở khu vực đó  ==
 def create_new_window_image_daviteq(title):
     def show_images(file_list, category):
         for widget in image_frame.winfo_children():
@@ -1642,7 +1650,7 @@ def create_new_window_image_daviteq(title):
     first_category = list(category_images.keys())[0]
     toggle_sub_buttons(first_category)
 
-# == Cửa sổ tài liệu ==
+# == Cửa sổ hiển thị tài liệu của RMC ==
 def create_documentary_viewer(share_url):
     files = list_files_from_url(share_url)  # Lấy file từ OneDrive Azure
     filtered_files = files.copy()

@@ -332,13 +332,60 @@ output_text = tk.Text(content_frame, font=("Arial", 13), width=60, height=15, wr
 output_text.pack(side='left', pady=(10, 0), padx=10)
 output_text.config(state='disabled')
 
-# === Frame chứa các danh sách ATQB, ABDNC... ===
-button_frame = tk.Frame(content_frame)
-button_frame.pack(side='left', padx=10)
+# === Frame chứa các danh sách ATQB, ABDNC... với Scrollbar ===
+button_container = tk.Frame(content_frame)
+button_container.pack(side='left', padx=10, fill="y")
+
+# Subframe cho thanh tìm kiếm (cố định, không cuộn)
+button_search_frame = tk.Frame(button_container)
+button_search_frame.pack(fill="x")
+
+# Subframe cho phần cuộn danh sách nút
+button_list_container = tk.Frame(button_container)
+button_list_container.pack(fill="both", expand=True)
+
+button_canvas = tk.Canvas(button_list_container, width=150, height=100)
+button_canvas.pack(side="left", fill="both", expand=True)
+
+button_scrollbar = tk.Scrollbar(
+    button_list_container,
+    orient="vertical",
+    command=button_canvas.yview
+)
+button_scrollbar.pack(side="right", fill="y")
+
+button_canvas.configure(yscrollcommand=button_scrollbar.set)
+button_canvas.bind(
+    '<Configure>',
+    lambda e: button_canvas.configure(scrollregion=button_canvas.bbox("all"))
+)
+
+button_frame = tk.Frame(button_canvas)   # nơi chứa các nút cha
+button_canvas.create_window((0, 0), window=button_frame, anchor="nw")
 
 # === Frame chứa các item xuất hiện khi chọn danh sách ===
-item_frame = tk.Frame(content_frame)
-item_frame.pack(side='left', padx=10)
+item_container = tk.Frame(content_frame)
+item_container.pack(side='left', padx=10, fill="y")
+
+# Subframe cho thanh tìm kiếm (cố định, không cuộn)
+item_search_frame = tk.Frame(item_container)
+item_search_frame.pack(fill="x")
+
+# Subframe cho phần cuộn danh sách nút con
+item_list_container = tk.Frame(item_container)
+item_list_container.pack(fill="both", expand=True)
+
+item_canvas = tk.Canvas(item_list_container, width=100, height=100)
+item_canvas.pack(side="left", fill="both", expand=True)
+
+item_scrollbar = tk.Scrollbar(item_list_container, orient="vertical", command=item_canvas.yview)
+item_scrollbar.pack(side="right", fill="y")
+
+item_canvas.configure(yscrollcommand=item_scrollbar.set)
+item_canvas.bind('<Configure>', lambda e: item_canvas.configure(scrollregion=item_canvas.bbox("all")))
+
+item_frame = tk.Frame(item_canvas)   # nơi chứa các nút con
+item_canvas.create_window((0, 0), window=item_frame, anchor="nw")
 
 # ==== NÚT COPY ====
 copy_frame = tk.Frame(main_frame)
@@ -409,6 +456,71 @@ def reset_after_delay():
 def update_hint(text):
     if hint_label:
         hint_label.config(text=text)
+
+# ==== THANH TÌM KIẾM CHO DANH SÁCH CHA (button_frame) ====
+search_parent_var = tk.StringVar()
+
+def filter_parent_buttons(event=None):
+    keyword = search_parent_var.get().strip().lower()
+
+    matches = []
+    non_matches = []
+
+    for block, btn in parent_items:
+        text = btn.cget("text").lower()
+        if keyword == "" or keyword in text:
+            matches.append((block, btn))
+        else:
+            non_matches.append((block, btn))
+
+    # clear hết
+    for block, btn in parent_items:
+        block.pack_forget()
+
+    # pack lại: matches lên đầu
+    for block, btn in matches:
+        block.pack(pady=10, anchor='w')
+    for block, btn in non_matches:
+        block.pack(pady=10, anchor='w')
+
+    # cập nhật canvas
+    button_canvas.update_idletasks()
+    button_canvas.configure(scrollregion=button_canvas.bbox("all"))
+
+search_parent_entry = tk.Entry(button_search_frame, textvariable=search_parent_var)
+search_parent_entry.pack(fill="x", pady=5)
+search_parent_entry.bind("<KeyRelease>", filter_parent_buttons)
+
+parent_items = []  # list chứa các nút cha
+
+# ==== THANH TÌM KIẾM CHO DANH SÁCH CON (item_frame) ====
+search_child_var = tk.StringVar()
+
+def filter_child_buttons(event=None):
+    keyword = search_child_var.get().lower()
+
+    # Chia danh sách thành 2 nhóm: khớp và không khớp
+    matched = []
+    unmatched = []
+    for btn in child_buttons:
+        if keyword in btn.cget("text").lower():
+            matched.append(btn)
+        else:
+            unmatched.append(btn)
+
+    # Clear layout trước
+    for btn in child_buttons:
+        btn.pack_forget()
+
+    # Pack lại: matched trước, unmatched sau
+    for btn in matched + unmatched:
+        btn.pack(anchor='w', pady=1)
+
+search_child_entry = tk.Entry(item_search_frame, textvariable=search_child_var)
+search_child_entry.pack(fill="x", pady=5)
+search_child_entry.bind("<KeyRelease>", filter_child_buttons)
+
+child_buttons = []  # list chứa các nút con
 
 # ==== Chức năng cho nút copy và nút clear văn bản đang hiển thị trên text box ====
 def copy_text_to_clipboard():
@@ -574,6 +686,9 @@ def create_list_block(parent, list_name, items, toggle_function, state):
     list_button.pack(anchor='w')
     state["button"] = list_button
 
+    # lưu cả frame và button
+    parent_items.append((block_frame, list_button))
+
 # ==== HÀM BẬT TẮT DANH SÁCH ====
 def toggle_list1(state):
     if list2_state["visible"]:
@@ -666,6 +781,7 @@ def toggle_sub_buttons(state, item_dict, auto_select_first=False):
                 ]
             btn.config(command=cmd)
             btn.pack(anchor='w', pady=1)
+            child_buttons.append(btn)  # Thêm vào danh sách nút con
             state["buttons"].append(btn)
 
             if idx == 0:

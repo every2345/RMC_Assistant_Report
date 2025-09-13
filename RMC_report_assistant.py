@@ -310,61 +310,61 @@ def download_file(file_id, filename):
         return None
 
 # === Khu vực tạo Frame để lưu trữ các thành phần ===============================================================================================
-# Tạo cửa sổ chính
+# =============== Tạo cửa sổ chính =============== 
 root.deiconify()
 root.title("RMC Report Assistant")
-root.geometry("1080x800")
+root.geometry("1080x680")
 
 # Frame chính
 main_frame = tk.Frame(root)
 main_frame.pack(expand=True, pady=40, padx=20)
 
 # Frame con chứa văn bản và các nút bên phải
-content_frame = tk.Frame(main_frame)
-content_frame.pack()
+show_text_and_multitasking_frame = tk.Frame(main_frame)
+show_text_and_multitasking_frame.pack()
 
 # === frame chứa nút contact, status và note bên trái ===
-left_button_frame = tk.Frame(content_frame)
-left_button_frame.pack(side="left", fill="y", padx=10, pady=10)
+left_button_frame = tk.Frame(show_text_and_multitasking_frame)
+left_button_frame.pack(side="left", fill="y", padx=10)
 
 # === Text để hiển thị văn bản ===
-output_text = tk.Text(content_frame, font=("Arial", 13), width=60, height=15, wrap="word")
+output_text = tk.Text(show_text_and_multitasking_frame, font=("Arial", 13), width=60, height=15, wrap="word")
 output_text.pack(side='left', pady=(10, 0), padx=10)
 output_text.config(state='disabled')
 
-# === Frame chứa các danh sách ATQB, ABDNC... với Scrollbar ===
-button_container = tk.Frame(content_frame)
-button_container.pack(side='left', padx=10, fill="y")
+# =============== Frame chứa các danh sách ATQB, ABDNC... với Scrollbar =============== 
+site_container = tk.Frame(show_text_and_multitasking_frame)
+site_container.pack(side='left', padx=10, fill="y")
 
 # Subframe cho thanh tìm kiếm (cố định, không cuộn)
-button_search_frame = tk.Frame(button_container)
-button_search_frame.pack(fill="x")
+site_search_frame = tk.Frame(site_container)
+site_search_frame.pack(fill="x")
 
 # Subframe cho phần cuộn danh sách nút
-button_list_container = tk.Frame(button_container)
-button_list_container.pack(fill="both", expand=True)
+site_list_container = tk.Frame(site_container)
+site_list_container.pack(fill="both", expand=True)
 
-button_canvas = tk.Canvas(button_list_container, width=150, height=100)
-button_canvas.pack(side="left", fill="both", expand=True)
+site_canvas = tk.Canvas(site_list_container, width=150, height=100)
+site_canvas.pack(side="left", fill="both", expand=True)
 
-button_scrollbar = tk.Scrollbar(
-    button_list_container,
+site_scrollbar = tk.Scrollbar(
+    site_list_container,
     orient="vertical",
-    command=button_canvas.yview
+    command=site_canvas.yview
 )
-button_scrollbar.pack(side="right", fill="y")
+site_scrollbar.pack(side="right", fill="y")
 
-button_canvas.configure(yscrollcommand=button_scrollbar.set)
-button_canvas.bind(
+site_canvas.configure(yscrollcommand=site_scrollbar.set)
+site_canvas.bind(
     '<Configure>',
-    lambda e: button_canvas.configure(scrollregion=button_canvas.bbox("all"))
+    lambda e: site_canvas.configure(scrollregion=site_canvas.bbox("all"))
 )
 
-button_frame = tk.Frame(button_canvas)   # nơi chứa các nút cha
-button_canvas.create_window((0, 0), window=button_frame, anchor="nw")
+site_frame = tk.Frame(site_canvas)   # nơi chứa các nút cha
+site_canvas.create_window((0, 0), window=site_frame, anchor="nw")
 
-# === Frame chứa các item xuất hiện khi chọn danh sách ===
-item_container = tk.Frame(content_frame)
+# ===============  Frame chứa các item xuất hiện khi chọn danh sách =============== 
+item_container = tk.Frame(show_text_and_multitasking_frame)
 item_container.pack(side='left', padx=10, fill="y")
 
 # Subframe cho thanh tìm kiếm (cố định, không cuộn)
@@ -387,21 +387,25 @@ item_canvas.bind('<Configure>', lambda e: item_canvas.configure(scrollregion=ite
 item_frame = tk.Frame(item_canvas)   # nơi chứa các nút con
 item_canvas.create_window((0, 0), window=item_frame, anchor="nw")
 
-# ==== NÚT COPY ====
-copy_frame = tk.Frame(main_frame)
-copy_frame.pack(fill='x', pady=(10, 0), padx=20)
+# ==== FRAME CHO CÁC NÚT COPY, CLEAR, ĐỒNG HỒ, CATCH, CONTINUE ====
+ccdcc_frame = tk.Frame(main_frame) # copy, clear, đồng hồ, catch, continue: ccdcc
+ccdcc_frame.pack(fill='x', pady=(10, 0)) # giãn ngang (theo trục X)
 
-# Nhóm bên phải: Catch, Clock, Continue
-right_controls = tk.Frame(copy_frame)
-right_controls.pack(side="right")
-
-# Nhóm bên trái: Copy và Clear
-left_controls = tk.Frame(copy_frame)
+# Nhóm chứa nút bên trái: Copy và Clear
+left_controls = tk.Frame(ccdcc_frame)
 left_controls.pack(side="left")
+
+# Nhóm chứa nút bên phải: Catch, Clock, Continue
+right_controls = tk.Frame(ccdcc_frame)
+right_controls.pack(side="right")
 
 # ==== Frame chứa các ô tô màu ====
 box_frame = tk.Frame(main_frame)
 box_frame.pack(pady=(10, 0))
+
+# ==== thêm đồng hồ đếm ngược ==== 
+timer_frame = tk.Frame(main_frame)
+timer_frame.pack(pady=(10, 0))
 
 # === Khu vực tạo và cấu hình chức năng ===========================================================================================
 # ============== Chức năng tô màu ô tiến trình ==================
@@ -413,16 +417,32 @@ first_box_filled = False
 
 # ==== Tạo 6 ô trắng trong box_frame ====
 for i in range(6):
-    lbl = tk.Label(box_frame, width=10, height=1, bg="white", relief="solid", borderwidth=2)
+    lbl = tk.Label(
+        box_frame, # Nằm trong box_frame
+        width=22, # Rộng
+        height=1, # Cao 
+        bg="white", 
+        relief="solid", # Kiểu viền 
+        borderwidth=1) # Độ dày viền
     lbl.grid(row=0, column=i, padx=5)
     boxes.append(lbl)
 
 # ==== TẠO hint_label nằm dưới box_frame ====
-hint_label = tk.Label(main_frame, text="Quy trình xử lý sự cố đang đợi", wraplength=800, justify="left", font=("Arial", 11), fg="black")
-hint_label.pack(pady=(10, 20))  # Giữa box_frame và nút xác nhận
+hint_label = tk.Label(
+    main_frame,
+    text="Quy trình xử lý sự cố đang đợi...",  # Nội dung hiển thị
+    font=("Arial", 13),   # Font Arial cỡ 11
+    fg="black",
+    anchor="center",      # Căn giữa trong khung Label
+    justify="center",     # Căn giữa nhiều dòng
+    wraplength=900,       # Xuống dòng khi dài quá 900px (bạn chỉnh theo khung main_frame)
+    height=5              # Chiều cao số dòng (có thể chỉnh)
+)
+hint_label.pack(fill="x", pady=(10, 20))
 
 # ==== Hàm xử lý tô màu ====
 def on_category_click():
+
     global box_colors
 
     # Đếm số ô đã được tô xanh
@@ -430,11 +450,11 @@ def on_category_click():
 
     # Gợi ý tương ứng từng bước
     if green_count == 1:
-        update_hint("Đã ghi nhận sự cố, tiến hành báo cáo lên group chung và tiếp tục theo dõi sự cố đang diễn ra. Nếu trong vòng 5 phút, không có thông báo gì từ phía bên Site đang xảy ra lỗi lên group chung. Lập tức liên hệ vói Site theo danh sách đã cho dựa vào mức độ ưu tiên (Bấm xác nhận nếu như thông tin đã được cập nhật lên group từ bên Site). Sau khi đã liên hệ, cập nhật thông tin liên hệ lên Group chung thông qua biểu mẫu trong mục Contact.")
+        update_hint("Sau khi nhận sự cố, tiến hành báo cáo lên group chung, tiếp tục theo dõi sự cố đang diễn ra. Trong vòng 5 phút không có thông báo gì từ phía bên Site. Liên hệ với Site theo danh sách ưu tiên (Bấm xác nhận nếu như thông tin đã được cập nhật lên group từ bên Site). Sau khi liên hệ, cập nhật thông tin liên hệ lên Group chung thông qua biểu mẫu trong mục Contact.")
     elif green_count == 2:
-        update_hint("Tiếp tục theo dõi và cập nhật sự cố liên tục. Nếu như sau một khoảng thời gian không nhận được thông tin gì từ phía bên Site kể từ thời điểm đã liên hệ với Site (1 - 2 tiếng) và đã thông tin lên group chung (). Tiến hành liên hệ lại với Site để xác minh tình trạng kiếm tra thiết bị và nguyên nhân (nếu có). Tiến hành cập nhập lại tình hình thiết bị lên nhóm group chung về tình hình khắc phục trình trạng hiện tại của thiết bị gây lỗi.")
+        update_hint("Tiếp tục theo dõi và cập nhật. Sau một khoảng thời gian không nhận được thông tin gì từ Site kể từ thời điểm đã liên hệ (1 - 2 tiếng). Tiến hành liên hệ lại Site để xác minh tình trạng kiếm tra thiết bị và nguyên nhân (nếu có). Tiến hành cập nhập lại tình hình lên nhóm group chung (Bấm 'Xác nhận' để bỏ qua bước này nếu như sự cố thiết bị đã được khắc phục và nguyên nhân sự cố đã được cập nhật).")
     elif green_count == 3:
-        update_hint("Nếu sự cố sau 1 tiếng cho đến 2 tiếng vẫn chưa được sự xử lí và cũng chưa được cập nhật lên group chung. Tiến hành liên hệ lại với số điện thoại ưu tiên để xác nhận lại sự cố, sau đó báo cáo lại tình hiên fleen group chung (Bấm 'Xác nhận' nếu sự cố đã được giải quyết trước thời điểm này).")
+        update_hint("Nếu sự cố sau 1 tiếng cho đến 2 tiếng vẫn chưa được sự xử lí và cũng chưa được cập nhật lên group chung. Tiến hành liên hệ lại với số điện thoại ưu tiên để xác nhận lại sự cố, sau đó báo cáo lại tình lên group chung (Bấm 'Xác nhận' nếu sự cố đã được giải quyết trước thời điểm này).")
     elif green_count == 4:
         update_hint("Khi sự cố đã được giải quyết, báo cáo lên group chung để khách hàng và các bộ phận liên quan nắm thông tin (Bấm 'Xác nhận' nếu có trường hợp ngoại lệ xảy ra).")
     elif green_count == 5:
@@ -484,10 +504,10 @@ def filter_parent_buttons(event=None):
         block.pack(pady=10, anchor='w')
 
     # cập nhật canvas
-    button_canvas.update_idletasks()
-    button_canvas.configure(scrollregion=button_canvas.bbox("all"))
+    site_canvas.update_idletasks()
+    site_canvas.configure(scrollregion=site_canvas.bbox("all"))
 
-search_parent_entry = tk.Entry(button_search_frame, textvariable=search_parent_var)
+search_parent_entry = tk.Entry(site_search_frame, textvariable=search_parent_var)
 search_parent_entry.pack(fill="x", pady=5)
 search_parent_entry.bind("<KeyRelease>", filter_parent_buttons)
 
@@ -560,7 +580,7 @@ def update_timer():
     else:
         timer_label.config(text="⏰Contact Site⏰")
 
-# == Chức năng bắt đầu và reset đồng hồ đếm ngược ==
+# == Chức năng bắt đầu và reset đồng hồ đếm ngược, đặt thời gian đếm ngược cho đồng hồ ==
 def start_timer():
     global time_left, countdown_job
     if countdown_job:
@@ -576,13 +596,8 @@ def reset_timer():
     time_left = 300
     timer_label.config(text="⏳Waiting Countdown⏳")
 
-# ==== thêm đồng hồ đếm ngược ==== 
-timer_frame = tk.Frame(main_frame)
-timer_frame.pack(pady=(10, 0))
-
 timer_label = tk.Label(timer_frame, text="⏳Waiting Countdown⏳", font=("Arial", 16, "bold"), fg="blue")
 timer_label.pack()
-
 countdown_job = None
 time_left = 300  # 5 phút = 300 giây
 
@@ -803,9 +818,9 @@ list2_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indic
 list3_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
 
 # ==== TẠO DANH SÁCH GIAO DIỆN ====
-create_list_block(button_frame, "ANVL", nvl_report_form_files, toggle_list1, list1_state)
-create_list_block(button_frame, "ATQB", tqb_report_form_files, toggle_list2, list2_state)
-create_list_block(button_frame, "ABNC", bdnc_report_form_files, toggle_list3, list3_state)
+create_list_block(site_frame, "ANVL", nvl_report_form_files, toggle_list1, list1_state)
+create_list_block(site_frame, "ATQB", tqb_report_form_files, toggle_list2, list2_state)
+create_list_block(site_frame, "ABNC", bdnc_report_form_files, toggle_list3, list3_state)
 toggle_sub_buttons(list1_state, nvl_report_form_files, auto_select_first=True)
 
 # ==== khu vực tạo các cửa sổ chức năng ================================================================================================================================

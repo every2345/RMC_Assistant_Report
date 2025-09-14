@@ -21,36 +21,38 @@ root = tk.Tk()
 root.withdraw()   # Ẩn cửa sổ chính ban đầu 
 
 # ==== Thiết lập và Cấu hình Azure AD, OneDrive, đường dẫn lưu trữ và hơn thế nữa =============================================================================================================
-# == lINK ONNDRIVE OF REPORT FORM ==
-nvl_report_form_share_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/REPORT%20FORM/NVL%20REPORT%20FORM"
-tqb_report_form_share_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/REPORT%20FORM/TQB%20REPORT%20FORM"
-bdnc_report_form_share_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/REPORT%20FORM/BDNC%20REPORT%20FORM"
+BASE_URL = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE"
 
-# == lINK ONNEDRIVE OF HOTLINES AND CONTACT FORM ==
-hotlines_and_confirm_form_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/HOTLINE_AND_CONFIRM_FORM"
+# == LINK ONEDRIVE OF REPORT FORM ==
+nvl_report_form_share_url   = f"{BASE_URL}/REPORT%20FORM/NVL%20REPORT%20FORM"
+tqb_report_form_share_url   = f"{BASE_URL}/REPORT%20FORM/TQB%20REPORT%20FORM"
+bdnc_report_form_share_url  = f"{BASE_URL}/REPORT%20FORM/BDNC%20REPORT%20FORM"
+
+# == LINK ONEDRIVE OF HOTLINES AND CONTACT FORM ==
+hotlines_and_confirm_form_url = f"{BASE_URL}/HOTLINE_AND_CONFIRM_FORM"
 
 # ===== KHU VỰC ẢNH DAVITEQ =====
 # == GATEWAY == 
-gateway_bdnc_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/GATEWAY/BDNC"
-gateway_tqb_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/GATEWAY/TQB"
-gateway_nvl_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/GATEWAY/NVL"
+gateway_bdnc_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/GATEWAY/BDNC"
+gateway_tqb_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/GATEWAY/TQB"
+gateway_nvl_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/GATEWAY/NVL"
 
 # == LAYOUT ==
-layout_bdnc_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/BDNC"
-layout_tqb_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/TQB"
-layout_nvl_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/NVL"
+layout_bdnc_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/BDNC"
+layout_tqb_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/TQB"
+layout_nvl_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/NVL"
 
 # == SENSOR ==
-sensor_bdnc_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/BDNC"
-sensor_tqb_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/TQB"
-sensor_nvl_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/NVL"
+sensor_bdnc_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/BDNC"
+sensor_tqb_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/TQB"
+sensor_nvl_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/NVL"
 
 # == ALARMPOINT ==
-al_nvl_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/ALARM%20POINTS/NVL"
-al_tqb_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DAVITEQ/IMAGE_%20ARCHIVE/ALARM%20POINTS/TQB"
+al_nvl_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/ALARM POINTS/NVL"
+al_tqb_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/ALARM POINTS/TQB"
 
 # ===== LINK LƯU TRỮ CÁC TÀI LIỆU PDF =====
-documentary_archive_url = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/DOCUMENTARY"
+documentary_archive_url = f"{BASE_URL}/DOCUMENTARY"
 
 # == Thông tin ID của ứng dụng Azure AD ==
 CLIENT_ID = "ac4edccf-a8ee-41aa-bcc4-6603c4bebae1"

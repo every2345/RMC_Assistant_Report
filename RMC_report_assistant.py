@@ -431,12 +431,12 @@ for i in range(6):
 hint_label = tk.Label(
     main_frame,
     text="Quy trình xử lý sự cố đang đợi...",  # Nội dung hiển thị
-    font=("Arial", 13),   # Font Arial cỡ 11
+    font=("Arial", 11),   # Font Arial cỡ 11
     fg="black",
     anchor="center",      # Căn giữa trong khung Label
     justify="center",     # Căn giữa nhiều dòng
     wraplength=900,       # Xuống dòng khi dài quá 900px (bạn chỉnh theo khung main_frame)
-    height=5              # Chiều cao số dòng (có thể chỉnh)
+    height=3              # Chiều cao số dòng (có thể chỉnh)
 )
 hint_label.pack(fill="x", pady=(10, 20))
 

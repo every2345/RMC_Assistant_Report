@@ -395,7 +395,6 @@ def sync_files_from_onedrive(token, share_url):
     r = requests.get(url, headers=headers)
 
     if r.status_code != 200:
-        print("❌ Không lấy được danh sách file từ OneDrive")
         return
 
     items = r.json().get("value", [])
@@ -409,11 +408,34 @@ def sync_files_from_onedrive(token, share_url):
         file_name = file["name"]
         last_modified = file["lastModifiedDateTime"]
 
-        old_modified = local_metadata.get(file_id, {}).get("lastModifiedDateTime")
+        # Lấy metadata cũ
+        old_info = local_metadata.get(file_id, {})
+        old_modified = old_info.get("lastModifiedDateTime")
+        local_path = old_info.get("local_path", os.path.join(REPORT_FORM_DIR, file_name))
 
+        need_update = False
+
+        # Nếu chưa có metadata hoặc khác lastModifiedDateTime
         if old_modified != last_modified:
-            filepath = download_file(token, file_id, file_name)
+            need_update = True
 
+        # Nếu file tồn tại trong hệ thống thì so sánh thời gian
+        if os.path.exists(local_path):
+            try:
+                local_time = datetime.datetime.fromtimestamp(os.path.getmtime(local_path))
+                remote_time = datetime.datetime.fromisoformat(last_modified.replace("Z", "+00:00"))
+                if local_time < remote_time:
+                    os.remove(local_path)
+                    need_update = True
+            except Exception as e:
+                need_update = True
+        else:
+            # File không tồn tại -> tải mới
+            need_update = True
+
+        # Thực hiện tải lại nếu cần
+        if need_update:
+            filepath = download_file(token, file_id, file_name)
             if filepath:
                 local_metadata[file_id] = {
                     "name": file_name,

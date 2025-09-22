@@ -15,6 +15,7 @@ import threading
 from tkinter import ttk, messagebox
 import json
 import schedule
+import datetime 
 
 # ==== Khởi tạo Tkinter root trước ====
 root = tk.Tk()
@@ -27,6 +28,7 @@ BASE_URL = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelig
 nvl_report_form_share_url   = f"{BASE_URL}/REPORT%20FORM/NVL%20REPORT%20FORM"
 tqb_report_form_share_url   = f"{BASE_URL}/REPORT%20FORM/TQB%20REPORT%20FORM"
 bdnc_report_form_share_url  = f"{BASE_URL}/REPORT%20FORM/BDNC%20REPORT%20FORM"
+vg_report_form_share_url    = f"{BASE_URL}/REPORT%20FORM/VG%20REPORT%20FORM"  # << AEON VAN GIANG PENDING
 
 # == LINK ONEDRIVE OF HOTLINES AND CONTACT FORM ==
 hotlines_and_confirm_form_url = f"{BASE_URL}/HOTLINE_AND_CONFIRM_FORM"
@@ -36,20 +38,26 @@ hotlines_and_confirm_form_url = f"{BASE_URL}/HOTLINE_AND_CONFIRM_FORM"
 gateway_bdnc_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/GATEWAY/BDNC"
 gateway_tqb_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/GATEWAY/TQB"
 gateway_nvl_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/GATEWAY/NVL"
+gateway_vg_url = f"" #<< PENDING
 
 # == LAYOUT ==
 layout_bdnc_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/BDNC"
 layout_tqb_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/TQB"
 layout_nvl_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/NVL"
+layout_vg_url = f"" #<< PENDING
 
 # == SENSOR ==
 sensor_bdnc_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/BDNC"
 sensor_tqb_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/TQB"
 sensor_nvl_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/NVL"
+sensor_vg_url = f"" #<< PENDING
+
 
 # == ALARMPOINT ==
 al_nvl_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/ALARM POINTS/NVL"
 al_tqb_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/ALARM POINTS/TQB"
+al_bdnc_url = f"" #<< NOT AVAILABLE
+al_vg_url = f"" #<< PENDING
 
 # ===== LINK LƯU TRỮ CÁC TÀI LIỆU PDF =====
 documentary_archive_url = f"{BASE_URL}/DOCUMENTARY"
@@ -78,6 +86,9 @@ IMAGE_AL_ARCHIVE_DIR = r"D:\RMC_Assistant_ver1.1\IMAGE\ALARMPOINT"
 # == đường dẫn lưu trữ các tài liệu ==
 DOCUMENTARY_ARCHIVE_DIR = r"D:\RMC_Assistant_ver1.1\DOCUMENTARY"
 
+# == Đường dẫn METADATA ==
+METADATA_DIR = r"D:\RMC_Assistant_ver1.1\METADATA"
+
 # === Khu vực tạo các thư mục lưu trữ nếu chưa có ===
 # Tạo thư mục lưu trữ cache
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -96,6 +107,9 @@ os.makedirs(IMAGE_AL_ARCHIVE_DIR, exist_ok=True)
 
 # Tạo thư mục lưu trữ tài liệu
 os.makedirs(DOCUMENTARY_ARCHIVE_DIR, exist_ok=True)
+
+# Tạo thư mục METADATA
+os.makedirs(METADATA_DIR, exist_ok=True)
 
 # ==== Đăng nhập, tải file và xử lý OneDrive bằng Azure ===========================================================================
 # == Cửa sổ đăng nhập Azure AD trên thiết bị mới ==
@@ -151,6 +165,49 @@ def show_device_login(flow):
 
     return win
 
+# == Cửa sổ kiểm tra dữ liệu ==
+def show_metadata_window(root, logo_path, message="Đang kiểm tra và cập nhật dữ liệu..."):
+    # Tạo cửa sổ nhỏ
+    splash = tk.Toplevel(root)
+    splash.title("Đồng bộ dữ liệu")
+    splash.geometry("400x200")
+    splash.resizable(False, False)
+
+    # Frame logo
+    frame_logo = tk.Frame(splash)
+    frame_logo.pack(pady=10)
+
+    try:
+        logo_img = Image.open(logo_path)
+        logo_img = logo_img.resize((100, 100))
+        logo = ImageTk.PhotoImage(logo_img)
+        logo_label = tk.Label(frame_logo, image=logo)
+        logo_label.image = logo
+        logo_label.pack()
+    except Exception as e:
+        tk.Label(frame_logo, text="[Không tải được logo]").pack()
+
+    # Frame trạng thái
+    frame_status = tk.Frame(splash)
+    frame_status.pack(pady=10, fill="x")
+
+    status_label = tk.Label(frame_status, text=message, font=("Arial", 11))
+    status_label.pack()
+
+    # Hàm cập nhật trạng thái rồi đóng splash
+    def update_and_close():
+        time.sleep(2)  # giả lập kiểm tra
+        status_label.config(text="Hoàn tất!")
+        time.sleep(1.5)
+        splash.destroy()
+
+    threading.Thread(target=update_and_close, daemon=True).start()
+
+    # Đảm bảo cửa sổ luôn nổi
+    splash.transient(root)
+    splash.grab_set()
+    root.wait_window(splash)
+
 # ==== Hàm đăng nhập Azure AD ====
 def authenticate():
     cache = msal.SerializableTokenCache()
@@ -204,7 +261,7 @@ except Exception as e:
     root.destroy()
     exit()
 
-## Sau một thời gian chương trình treo (idle) thì access_token hết hạn (thường là 1 giờ), nên không lấy được dữ liệu thường xuyên##
+# >> Sau một thời gian chương trình treo (idle) thì access_token hết hạn (thường là 1 giờ), nên không lấy được dữ liệu thường xuyên <<
 # ==== Quản lý phiên làm việc với Azure Graph API ====
 class GraphSession:
     def __init__(self, client_id, authority, scopes, cache_file):
@@ -292,9 +349,8 @@ def list_files_from_url(share_url):
     else:
         return []
 
-# ==== Tải file từ OneDrive ====
-def download_file(file_id, filename):
-    token = graph_session.ensure_token()
+# ==== Tải file từ OneDrive (sử dụng token truyền vào) ====
+def download_file(token, file_id, filename):
     cache_path = os.path.join(REPORT_FORM_DIR, filename)
     if os.path.exists(cache_path):
         return cache_path
@@ -309,7 +365,90 @@ def download_file(file_id, filename):
                 f.write(chunk)
         return cache_path
     else:
+        print(f"❌ Lỗi tải file {filename}: {r.status_code}")
         return None
+
+# >> Quản lý và lưu trữ METADATA để thực hiện cập nhật và đồng bộ dữ liệu
+# ==== Đường dẫn file metadata ====
+METADATA_FILE = os.path.join(METADATA_DIR, "onedrive_metadata.json")
+
+# ==== Đọc metadata đã lưu ====
+def load_metadata():
+    if os.path.exists(METADATA_FILE):
+        with open(METADATA_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+# ==== Ghi metadata mới ====
+def save_metadata(metadata):
+    with open(METADATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=4, ensure_ascii=False)
+
+# ==== Hàm đồng bộ file từ OneDrive ====
+def sync_files_from_onedrive(token, share_url):
+    # Lấy danh sách file trên OneDrive (có lastModifiedDateTime)
+    encoded_url = base64.b64encode(share_url.encode("utf-8")).decode("utf-8")
+    encoded_url = encoded_url.rstrip("=").replace("/", "_").replace("+", "-")
+
+    url = f"https://graph.microsoft.com/v1.0/shares/u!{encoded_url}/driveItem/children"
+    headers = {"Authorization": f"Bearer {token}"}
+    r = requests.get(url, headers=headers)
+
+    if r.status_code != 200:
+        print("❌ Không lấy được danh sách file từ OneDrive")
+        return
+
+    items = r.json().get("value", [])
+    files = [item for item in items if "file" in item]
+
+    # Load metadata cũ
+    local_metadata = load_metadata()
+
+    for file in files:
+        file_id = file["id"]
+        file_name = file["name"]
+        last_modified = file["lastModifiedDateTime"]
+
+        old_modified = local_metadata.get(file_id, {}).get("lastModifiedDateTime")
+
+        if old_modified != last_modified:
+            filepath = download_file(token, file_id, file_name)
+
+            if filepath:
+                local_metadata[file_id] = {
+                    "name": file_name,
+                    "lastModifiedDateTime": last_modified,
+                    "local_path": filepath
+                }
+
+    # Lưu lại metadata
+    save_metadata(local_metadata)
+
+try:
+    token = graph_session.ensure_token()
+
+    # >> Cập nhật data cho các biểu mẫu báo cáo <<
+    sync_files_from_onedrive(token, nvl_report_form_share_url)   # Gọi cho NVL
+    sync_files_from_onedrive(token, tqb_report_form_share_url)   # Gọi cho TQB
+    sync_files_from_onedrive(token, bdnc_report_form_share_url)  # Gọi cho BDNC
+    sync_files_from_onedrive(token, vg_report_form_share_url)    # Gọi cho VG
+    sync_files_from_onedrive(token, hotlines_and_confirm_form_url)  # Gọi cho HOTLINE AND CONFIRM FORM
+
+    # >> Cập nhật data cho các hình ảnh DAVITEQ <<
+    sync_files_from_onedrive(token, gateway_bdnc_url)  # Gọi cho GATEWAY BDNC
+    sync_files_from_onedrive(token, gateway_tqb_url)   # Gọi cho GATEWAY TQB
+    sync_files_from_onedrive(token, gateway_nvl_url)   # Gọi cho GATEWAY NVL
+    sync_files_from_onedrive(token, layout_bdnc_url)   # Gọi cho LAYOUT BDNC
+    sync_files_from_onedrive(token, layout_tqb_url)    # Gọi cho LAYOUT TQB
+    sync_files_from_onedrive(token, layout_nvl_url)    # Gọi cho LAYOUT NVL
+    sync_files_from_onedrive(token, sensor_bdnc_url)   # Gọi cho SENSOR BDNC
+    sync_files_from_onedrive(token, sensor_tqb_url)    # Gọi cho SENSOR TQB
+    sync_files_from_onedrive(token, sensor_nvl_url)    # Gọi cho SENSOR NVL
+    sync_files_from_onedrive(token, al_nvl_url)        # Gọi cho ALARMPOINT NVL
+    sync_files_from_onedrive(token, al_tqb_url)        # Gọi cho ALARMPOINT TQB
+
+except Exception as e:
+    messagebox.showerror("❌ Lỗi đồng bộ OneDrive", f"Dữ liệu không thể đồng bộ:\n{e}")
 
 # === Khu vực tạo Frame để lưu trữ các thành phần ===============================================================================================
 # =============== Tạo cửa sổ chính =============== 
@@ -317,19 +456,19 @@ root.deiconify()
 root.title("RMC Report Assistant")
 root.geometry("1080x680")
 
-# Frame chính
+# ==== Frame chính ==== <<<<<<<<<<<<<< MAIN FRAME 
 main_frame = tk.Frame(root)
 main_frame.pack(expand=True, pady=40, padx=20)
 
-# Frame con chứa văn bản và các nút bên phải
+# ==== Frame con chứa văn bản và các nút bên phải ====
 show_text_and_multitasking_frame = tk.Frame(main_frame)
 show_text_and_multitasking_frame.pack()
 
-# === frame chứa nút contact, status và note bên trái ===
+# ==== frame chứa nút contact, status và note bên trái ====
 left_button_frame = tk.Frame(show_text_and_multitasking_frame)
 left_button_frame.pack(side="left", fill="y", padx=10)
 
-# === Text để hiển thị văn bản ===
+# ==== Text để hiển thị văn bản ====
 output_text = tk.Text(show_text_and_multitasking_frame, font=("Arial", 13), width=60, height=15, wrap="word")
 output_text.pack(side='left', pady=(10, 0), padx=10)
 output_text.config(state='disabled')
@@ -338,11 +477,11 @@ output_text.config(state='disabled')
 site_container = tk.Frame(show_text_and_multitasking_frame)
 site_container.pack(side='left', padx=10, fill="y")
 
-# Subframe cho thanh tìm kiếm (cố định, không cuộn)
+# ==== Subframe cho thanh tìm kiếm (cố định, không cuộn) ====
 site_search_frame = tk.Frame(site_container)
 site_search_frame.pack(fill="x")
 
-# Subframe cho phần cuộn danh sách nút
+# ==== Subframe cho phần cuộn danh sách nút ====
 site_list_container = tk.Frame(site_container)
 site_list_container.pack(fill="both", expand=True)
 
@@ -353,7 +492,7 @@ site_scrollbar = tk.Scrollbar(
     site_list_container,
     orient="vertical",
     command=site_canvas.yview
-)
+) 
 site_scrollbar.pack(side="right", fill="y")
 
 site_canvas.configure(yscrollcommand=site_scrollbar.set)
@@ -369,11 +508,11 @@ site_canvas.create_window((0, 0), window=site_frame, anchor="nw")
 item_container = tk.Frame(show_text_and_multitasking_frame)
 item_container.pack(side='left', padx=10, fill="y")
 
-# Subframe cho thanh tìm kiếm (cố định, không cuộn)
+# ==== Subframe cho thanh tìm kiếm (cố định, không cuộn) ====
 item_search_frame = tk.Frame(item_container)
 item_search_frame.pack(fill="x")
 
-# Subframe cho phần cuộn danh sách nút con
+# ==== Subframe cho phần cuộn danh sách nút con ====
 item_list_container = tk.Frame(item_container)
 item_list_container.pack(fill="both", expand=True)
 
@@ -554,24 +693,27 @@ def clear_text_output():
     output_text.delete("1.0", tk.END)
     output_text.config(state='disabled')
 
-# == Chức năng bắt và tiếp tục đồng hồ thời gian thực của hệ thống ==
+# ==== Chức năng bắt và tiếp tục đồng hồ thời gian thực của hệ thống ====
 is_running = True
 
+# >> Chức năng bắt thời gian (ngừng đồng hồ thười gian thực) <<
 def catch_clock():
     global is_running
     is_running = False
 
+# >> Chức năng tiếp tục đồng hồi thười gian thực <<
 def continue_clock():
     global is_running
     is_running = True
 
+# >> Chức năng cập nhật, đọc trạng thái sự kiện hai nút catch và continue để thực hiện cập nhật đồng hồ <<
 def update_clock():
     if is_running:
         now = datetime.datetime.now().strftime("%H:%M:%S")
         clock_label.config(text=now)
     root.after(1000, update_clock)
 
-# == Chức năng lấy và hiển thị thời gian hiện tại trên hệ thống lên văn bản ==
+# ==== Chức năng lấy và hiển thị thời gian hiện tại trên hệ thống lên văn bản ====
 def update_timer():
     global time_left, countdown_job
     minutes, seconds = divmod(time_left, 60)
@@ -582,7 +724,8 @@ def update_timer():
     else:
         timer_label.config(text="⏰Contact Site⏰")
 
-# == Chức năng bắt đầu và reset đồng hồ đếm ngược, đặt thời gian đếm ngược cho đồng hồ ==
+# ==== Chức năng bắt đầu và reset đồng hồ đếm ngược, đặt thời gian đếm ngược cho đồng hồ ====
+# >> Bắt đầu đếm ngược <<
 def start_timer():
     global time_left, countdown_job
     if countdown_job:
@@ -590,6 +733,7 @@ def start_timer():
     time_left = 300
     update_timer()
 
+# >> Đặt lại đồng hồ <<
 def reset_timer():
     global time_left, countdown_job
     if countdown_job:
@@ -598,6 +742,7 @@ def reset_timer():
     time_left = 300
     timer_label.config(text="⏳Waiting Countdown⏳")
 
+# ==== Tạo labels cho đồng hồ thời gian thực và đồng hồ đếm ngược ====
 timer_label = tk.Label(timer_frame, text="⏳Waiting Countdown⏳", font=("Arial", 16, "bold"), fg="blue")
 timer_label.pack()
 countdown_job = None
@@ -618,7 +763,12 @@ def build_device_mapping(share_url, device_names):
 # ==== CHỨC NĂNG HIỂN THỊ VĂN BẢN VÀ THỜI GIAN====
 def show_text_from_drive(file_id, filename, is_no_error=False, start_timer_flag=True):
     try:
-        file_path = download_file(file_id, filename)  # tải từ OneDrive
+        # ✅ Lấy token hợp lệ trước khi tải
+        token = graph_session.ensure_token()
+
+        # ✅ Gọi đúng hàm download_file với 3 tham số
+        file_path = download_file(token, file_id, filename)
+
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
 
@@ -630,11 +780,13 @@ def show_text_from_drive(file_id, filename, is_no_error=False, start_timer_flag=
             delayed_time = datetime.datetime.now() - datetime.timedelta(minutes=1)
             current_time = delayed_time.strftime("+ Thời gian: %H:%M:%S %d-%m-%Y ") + '\n'
             lines = [current_time if '[time]' in line else line for line in lines]
-        
+
         content = ''.join(lines)
+
     except Exception as e:
         content = f"Không thể mở file: {e}"
 
+    # ✅ Cập nhật vào Text widget
     output_text.config(state='normal')
     output_text.delete("1.0", tk.END)
     output_text.insert(tk.END, content)
@@ -642,7 +794,6 @@ def show_text_from_drive(file_id, filename, is_no_error=False, start_timer_flag=
 
     if start_timer_flag:
         start_timer()
-
 device_names_anvl = [
     "NVL_FR&FC", "NVL_FAN", "NVL_DELICA",
     "NVL_POWER_1", "NVL_POWER_2", "NVL_POWER_3", 
@@ -659,6 +810,8 @@ device_names_abnc = [
     "ABNC_FR&FC", "ABNC_POWER", "ABNC_FAN", "ABNC_LPG", "ABNC_NO_ERROR"
 ]
 
+device_name_avg = [] #<< PENDING
+
 contact_sample = ["CONTACT_FORM"]
 confirm_sample = ["CONFIRM_FORM"]
 
@@ -666,11 +819,17 @@ confirm_sample = ["CONFIRM_FORM"]
 nvl_report_form_files = build_device_mapping(nvl_report_form_share_url, device_names_anvl)
 tqb_report_form_files = build_device_mapping(tqb_report_form_share_url, device_names_atqb)
 bdnc_report_form_files = build_device_mapping(bdnc_report_form_share_url, device_names_abnc)
+vg_report_form_share_url = build_device_mapping(vg_report_form_share_url, device_name_avg) #<< PENDING
+
 
 # ==== TẠO GIAO DIỆN DANH SÁCH ====
-active_parent_button = None
+# >> Tạo biến trạng thái cho nút cha <<
+active_parent_button = None 
+
+# >> Tạo biến trạng thái cho nút con <<
 active_child_button = None
 
+# >> Đặt trạng thái và đổi màu nút khi được chọn CHO NÚT CHA <<
 def set_active_parent_button(btn):
     global active_parent_button
     # Reset nút cha cũ
@@ -680,6 +839,7 @@ def set_active_parent_button(btn):
     btn.config(bg="green", fg="white")
     active_parent_button = btn
 
+# >> Đặt trạng thái và đổi màu nút khi được chọn CHO NÚT CON <<
 def set_active_child_button(btn):
     global active_child_button
     # Reset nút con cũ
@@ -707,26 +867,30 @@ def create_list_block(parent, list_name, items, toggle_function, state):
     parent_items.append((block_frame, list_button))
 
 # ==== HÀM BẬT TẮT DANH SÁCH ====
-def toggle_list1(state):
-    if list2_state["visible"]:
-        toggle_sub_buttons(list2_state, tqb_report_form_files)
-    if list3_state["visible"]:
-        toggle_sub_buttons(list3_state, bdnc_report_form_files)
-    toggle_sub_buttons(state, nvl_report_form_files)
+# Định nghĩa mapping cho từng list
+lists_config = {
+    "list1-NVL": {"state": lambda: list1_state, "files": nvl_report_form_files},
+    "list2-TQB": {"state": lambda: list2_state, "files": tqb_report_form_files},
+    "list3-BDNC": {"state": lambda: list3_state, "files": bdnc_report_form_files},
+    "list4-VG": {"state": lambda: list4_state, "files": vg_report_form_share_url}, #<< AEON VAN GIAN PENDING
+    # sau này có thể thêm nhiều list khác ở đây
+}
 
-def toggle_list2(state):
-    if list1_state["visible"]:
-        toggle_sub_buttons(list1_state, nvl_report_form_files)
-    if list3_state["visible"]:
-        toggle_sub_buttons(list3_state, bdnc_report_form_files)
-    toggle_sub_buttons(state, tqb_report_form_files)
+def toggle_list(target_key):
+    # Lấy config của list cần bật/tắt
+    target_state = lists_config[target_key]["state"]()
+    target_files = lists_config[target_key]["files"]
 
-def toggle_list3(state):
-    if list1_state["visible"]:
-        toggle_sub_buttons(list1_state, nvl_report_form_files)
-    if list2_state["visible"]:
-        toggle_sub_buttons(list2_state, tqb_report_form_files)
-    toggle_sub_buttons(state, bdnc_report_form_files)
+    # Tắt các list khác
+    for key, cfg in lists_config.items():
+        if key != target_key:
+            st = cfg["state"]()
+            if st["visible"]:
+                toggle_sub_buttons(st, cfg["files"])
+
+    # Bật/tắt list mục tiêu
+    toggle_sub_buttons(target_state, target_files)
+
 
 # ==== SAO CHÉP VĂN BẢN ====
 def copy_text_to_clipboard():
@@ -818,15 +982,18 @@ def toggle_sub_buttons(state, item_dict, auto_select_first=False):
 list1_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
 list2_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
 list3_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
+list4_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
 
 # ==== TẠO DANH SÁCH GIAO DIỆN ====
-create_list_block(site_frame, "ANVL", nvl_report_form_files, toggle_list1, list1_state)
-create_list_block(site_frame, "ATQB", tqb_report_form_files, toggle_list2, list2_state)
-create_list_block(site_frame, "ABNC", bdnc_report_form_files, toggle_list3, list3_state)
+create_list_block(site_frame, "ANVL", nvl_report_form_files, lambda state: toggle_list("list1-NVL"), list1_state)
+create_list_block(site_frame, "ATQB", tqb_report_form_files, lambda state: toggle_list("list2-TQB"), list2_state)
+create_list_block(site_frame, "ABNC", bdnc_report_form_files, lambda state: toggle_list("list3-BDNC"), list3_state)
+create_list_block(site_frame, "AVG", bdnc_report_form_files, lambda state: toggle_list("list4-VG"), list4_state)
+
+# Khởi tạo auto select cho list1 (tùy chọn)
 toggle_sub_buttons(list1_state, nvl_report_form_files, auto_select_first=True)
 
 # ==== khu vực tạo các cửa sổ chức năng ================================================================================================================================
-
 # == Cửa sổ cho mục contact ==
 def create_new_window_contact(title, content=None):
     new_window = tk.Toplevel(root)

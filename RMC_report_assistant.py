@@ -386,15 +386,43 @@ def save_metadata(metadata):
 
 # ==== Hàm đồng bộ file từ OneDrive ====
 def sync_files_from_onedrive(token, share_url):
-    # Lấy danh sách file trên OneDrive (có lastModifiedDateTime)
+    """
+    Đồng bộ một folder share_url:
+     - Lấy danh sách file từ OneDrive (API Graph).
+     - Với mỗi file: tìm các file cùng tên trên ổ đĩa (theo REPORT_FORM_DIR và các thư mục ảnh),
+       hoặc dùng local_path có sẵn trong metadata.
+     - Nếu local file cũ hơn remote -> xóa file local rồi tải lại.
+     - Nếu không tồn tại file local -> tải về.
+     - Cập nhật metadata (key = file_id).
+    """
+    # helper: tìm mọi file cùng tên (case-insensitive) trong các thư mục lưu trữ
+    def find_local_paths_by_name(filename):
+        filename_lower = filename.lower()
+        roots = [
+            REPORT_FORM_DIR,
+            IMAGE_LAYOUT_ARCHIVE_DIR,
+            IMAGE_GATEWAY_ARCHIVE_DIR,
+            IMAGE_SENSOR_ARCHIVE_DIR,
+            IMAGE_AL_ARCHIVE_DIR
+        ]
+        found = []
+        for r in roots:
+            if not r:
+                continue
+            for dirpath, dirs, files in os.walk(r):
+                for f in files:
+                    if f.lower() == filename_lower:
+                        found.append(os.path.join(dirpath, f))
+        return found
+
+    # Lấy danh sách file từ OneDrive
     encoded_url = base64.b64encode(share_url.encode("utf-8")).decode("utf-8")
     encoded_url = encoded_url.rstrip("=").replace("/", "_").replace("+", "-")
-
     url = f"https://graph.microsoft.com/v1.0/shares/u!{encoded_url}/driveItem/children"
     headers = {"Authorization": f"Bearer {token}"}
     r = requests.get(url, headers=headers)
-
     if r.status_code != 200:
+        print("❌ Không lấy được danh sách file từ OneDrive:", r.status_code, r.text)
         return
 
     items = r.json().get("value", [])
@@ -404,47 +432,104 @@ def sync_files_from_onedrive(token, share_url):
     local_metadata = load_metadata()
 
     for file in files:
-        file_id = file["id"]
-        file_name = file["name"]
-        last_modified = file["lastModifiedDateTime"]
+        file_id = file.get("id")
+        file_name = file.get("name")
+        last_modified = file.get("lastModifiedDateTime")  # ISO 8601
 
-        # Lấy metadata cũ
-        old_info = local_metadata.get(file_id, {})
-        old_modified = old_info.get("lastModifiedDateTime")
-        local_path = old_info.get("local_path", os.path.join(REPORT_FORM_DIR, file_name))
+        # Parse remote time -> timestamp (UTC)
+        try:
+            # OneDrive thường trả '2025-09-22T10:00:00Z' hoặc with offset
+            remote_dt = datetime.datetime.fromisoformat(last_modified.replace("Z", "+00:00"))
+            remote_ts = remote_dt.timestamp()
+        except Exception as e:
+            print(f"❌ Không parse được thời gian remote cho {file_name}: {e}")
+            remote_ts = None
 
-        need_update = False
+        # Tập hợp các candidate local paths:
+        candidate_paths = []
 
-        # Nếu chưa có metadata hoặc khác lastModifiedDateTime
-        if old_modified != last_modified:
-            need_update = True
+        # 1) path lưu trong metadata (nếu có)
+        if file_id in local_metadata and "local_path" in local_metadata[file_id]:
+            candidate_paths.append(local_metadata[file_id]["local_path"])
 
-        # Nếu file tồn tại trong hệ thống thì so sánh thời gian
-        if os.path.exists(local_path):
-            try:
-                local_time = datetime.datetime.fromtimestamp(os.path.getmtime(local_path))
-                remote_time = datetime.datetime.fromisoformat(last_modified.replace("Z", "+00:00"))
-                if local_time < remote_time:
-                    os.remove(local_path)
-                    need_update = True
-            except Exception as e:
-                need_update = True
+        # 2) tìm bằng tên file trong các thư mục lưu trữ
+        candidate_paths.extend(find_local_paths_by_name(file_name))
+
+        # dedupe while preserving order
+        seen = set()
+        candidate_paths = [p for p in candidate_paths if not (p in seen or seen.add(p))]
+
+        need_download = False
+        # Nếu không tìm thấy candidate nào -> cần tải
+        if not candidate_paths:
+            need_download = True
         else:
-            # File không tồn tại -> tải mới
-            need_update = True
+            # Kiểm tra từng candidate; nếu có một file local hiện tại >= remote thì coi là ok
+            local_is_fresh = False
+            for p in candidate_paths:
+                try:
+                    if os.path.exists(p):
+                        local_ts = os.path.getmtime(p)
+                        # nếu không có remote_ts (fail parse) -> tải để an toàn
+                        if remote_ts is None:
+                            # không thể so sánh -> tải lại để đảm bảo nhất quán
+                            try:
+                                os.remove(p)
+                                print(f"⚠️ Xóa file (vì không parse được remote time): {p}")
+                            except Exception as e:
+                                print(f"❌ Không thể xóa {p}: {e}")
+                            need_download = True
+                            break
 
-        # Thực hiện tải lại nếu cần
-        if need_update:
+                        # so sánh: nếu local cũ hơn remote -> xóa và đánh dấu cần tải
+                        # dung sai 1 giây để tránh khác biệt nhỏ
+                        if local_ts < (remote_ts - 1):
+                            try:
+                                os.remove(p)
+                                print(f"⬇️ File local cũ ({p}) đã bị xóa để tải lại (local_ts={local_ts}, remote_ts={remote_ts})")
+                            except Exception as e:
+                                print(f"❌ Lỗi xóa file {p}: {e}")
+                                # nếu không xóa được, vẫn đánh dấu cần tải để ghi đè
+                            need_download = True
+                            # continue check other candidates (nếu có nhiều bản sao cũ)
+                        else:
+                            # local mới hơn hoặc bằng -> không cần tải lại
+                            local_is_fresh = True
+                            # update metadata entry (nếu thiếu)
+                            local_metadata[file_id] = {
+                                "name": file_name,
+                                "lastModifiedDateTime": last_modified,
+                                "local_path": p
+                            }
+                            break
+                    else:
+                        # candidate path có trong metadata nhưng file đã bị xóa -> cần tải
+                        need_download = True
+                except Exception as e:
+                    print(f"❌ Lỗi khi xử lý file local {p}: {e}")
+                    need_download = True
+
+            if not local_is_fresh and not need_download:
+                # nếu sau duyệt các candidate không tìm thấy file nào tươi (fresh), cần tải
+                need_download = True
+
+        # Nếu cần tải -> gọi download_file và cập nhật metadata
+        if need_download:
             filepath = download_file(token, file_id, file_name)
             if filepath:
+                # đảm bảo local path có tồn tại
                 local_metadata[file_id] = {
                     "name": file_name,
                     "lastModifiedDateTime": last_modified,
                     "local_path": filepath
                 }
+                print(f"✅ Đã tải: {file_name} -> {filepath}")
+            else:
+                print(f"❌ Tải thất bại: {file_name}")
 
-    # Lưu lại metadata
+    # Lưu metadata cuối cùng
     save_metadata(local_metadata)
+    print("📁 Metadata đã được cập nhật:", METADATA_FILE)
 
 try:
     token = graph_session.ensure_token()

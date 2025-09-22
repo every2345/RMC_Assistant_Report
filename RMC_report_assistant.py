@@ -422,7 +422,6 @@ def sync_files_from_onedrive(token, share_url):
     headers = {"Authorization": f"Bearer {token}"}
     r = requests.get(url, headers=headers)
     if r.status_code != 200:
-        print("❌ Không lấy được danh sách file từ OneDrive:", r.status_code, r.text)
         return
 
     items = r.json().get("value", [])
@@ -442,7 +441,6 @@ def sync_files_from_onedrive(token, share_url):
             remote_dt = datetime.datetime.fromisoformat(last_modified.replace("Z", "+00:00"))
             remote_ts = remote_dt.timestamp()
         except Exception as e:
-            print(f"❌ Không parse được thời gian remote cho {file_name}: {e}")
             remote_ts = None
 
         # Tập hợp các candidate local paths:
@@ -475,7 +473,6 @@ def sync_files_from_onedrive(token, share_url):
                             # không thể so sánh -> tải lại để đảm bảo nhất quán
                             try:
                                 os.remove(p)
-                                print(f"⚠️ Xóa file (vì không parse được remote time): {p}")
                             except Exception as e:
                                 print(f"❌ Không thể xóa {p}: {e}")
                             need_download = True
@@ -486,7 +483,6 @@ def sync_files_from_onedrive(token, share_url):
                         if local_ts < (remote_ts - 1):
                             try:
                                 os.remove(p)
-                                print(f"⬇️ File local cũ ({p}) đã bị xóa để tải lại (local_ts={local_ts}, remote_ts={remote_ts})")
                             except Exception as e:
                                 print(f"❌ Lỗi xóa file {p}: {e}")
                                 # nếu không xóa được, vẫn đánh dấu cần tải để ghi đè
@@ -523,13 +519,9 @@ def sync_files_from_onedrive(token, share_url):
                     "lastModifiedDateTime": last_modified,
                     "local_path": filepath
                 }
-                print(f"✅ Đã tải: {file_name} -> {filepath}")
-            else:
-                print(f"❌ Tải thất bại: {file_name}")
 
     # Lưu metadata cuối cùng
     save_metadata(local_metadata)
-    print("📁 Metadata đã được cập nhật:", METADATA_FILE)
 
 try:
     token = graph_session.ensure_token()
@@ -542,17 +534,24 @@ try:
     sync_files_from_onedrive(token, hotlines_and_confirm_form_url)  # Gọi cho HOTLINE AND CONFIRM FORM
 
     # >> Cập nhật data cho các hình ảnh DAVITEQ <<
-    sync_files_from_onedrive(token, gateway_bdnc_url)  # Gọi cho GATEWAY BDNC
-    sync_files_from_onedrive(token, gateway_tqb_url)   # Gọi cho GATEWAY TQB
-    sync_files_from_onedrive(token, gateway_nvl_url)   # Gọi cho GATEWAY NVL
-    sync_files_from_onedrive(token, layout_bdnc_url)   # Gọi cho LAYOUT BDNC
-    sync_files_from_onedrive(token, layout_tqb_url)    # Gọi cho LAYOUT TQB
-    sync_files_from_onedrive(token, layout_nvl_url)    # Gọi cho LAYOUT NVL
-    sync_files_from_onedrive(token, sensor_bdnc_url)   # Gọi cho SENSOR BDNC
-    sync_files_from_onedrive(token, sensor_tqb_url)    # Gọi cho SENSOR TQB
-    sync_files_from_onedrive(token, sensor_nvl_url)    # Gọi cho SENSOR NVL
-    sync_files_from_onedrive(token, al_nvl_url)        # Gọi cho ALARMPOINT NVL
-    sync_files_from_onedrive(token, al_tqb_url)        # Gọi cho ALARMPOINT TQB
+    # GATEWAY
+    sync_files_from_onedrive(token, gateway_bdnc_url)  
+    sync_files_from_onedrive(token, gateway_tqb_url)   
+    sync_files_from_onedrive(token, gateway_nvl_url)   
+
+    #LAYOUT
+    sync_files_from_onedrive(token, layout_bdnc_url)   
+    sync_files_from_onedrive(token, layout_tqb_url)    
+    sync_files_from_onedrive(token, layout_nvl_url)    
+
+    #SENSOR
+    sync_files_from_onedrive(token, sensor_bdnc_url)   
+    sync_files_from_onedrive(token, sensor_tqb_url)    
+    sync_files_from_onedrive(token, sensor_nvl_url)    
+
+    #ALARMPOINT
+    sync_files_from_onedrive(token, al_nvl_url)        
+    sync_files_from_onedrive(token, al_tqb_url)        
 
 except Exception as e:
     messagebox.showerror("❌ Lỗi đồng bộ OneDrive", f"Dữ liệu không thể đồng bộ:\n{e}")

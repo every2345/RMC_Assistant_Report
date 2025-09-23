@@ -2,6 +2,8 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import datetime
 import os
+import sys
+import subprocess
 from PIL import Image, ImageTk
 import pyperclip
 from tkinter import ttk
@@ -17,6 +19,7 @@ import json
 import schedule
 import datetime 
 
+
 # ==== Khởi tạo Tkinter root trước ====
 root = tk.Tk()
 root.withdraw()   # Ẩn cửa sổ chính ban đầu 
@@ -28,7 +31,7 @@ BASE_URL = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelig
 nvl_report_form_share_url   = f"{BASE_URL}/REPORT%20FORM/NVL%20REPORT%20FORM"
 tqb_report_form_share_url   = f"{BASE_URL}/REPORT%20FORM/TQB%20REPORT%20FORM"
 bdnc_report_form_share_url  = f"{BASE_URL}/REPORT%20FORM/BDNC%20REPORT%20FORM"
-vg_report_form_share_url    = f"{BASE_URL}/REPORT%20FORM/VG%20REPORT%20FORM"  # << AEON VAN GIANG PENDING
+vg_report_form_share_url    = f"{BASE_URL}/REPORT%20FORM/VG%20REPORT%20FORM"  
 
 # == LINK ONEDRIVE OF HOTLINES AND CONTACT FORM ==
 hotlines_and_confirm_form_url = f"{BASE_URL}/HOTLINE_AND_CONFIRM_FORM"
@@ -44,7 +47,7 @@ gateway_vg_url = f"" #<< PENDING
 layout_bdnc_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/BDNC"
 layout_tqb_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/TQB"
 layout_nvl_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/NVL"
-layout_vg_url = f"" #<< PENDING
+layout_vg_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/LAYOUT/VG"
 
 # == SENSOR ==
 sensor_bdnc_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/BDNC"
@@ -57,7 +60,7 @@ sensor_vg_url = f"" #<< PENDING
 al_nvl_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/ALARM POINTS/NVL"
 al_tqb_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/ALARM POINTS/TQB"
 al_bdnc_url = f"" #<< NOT AVAILABLE
-al_vg_url = f"" #<< PENDING
+al_vg_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/ALARM POINTS/VG"
 
 # ===== LINK LƯU TRỮ CÁC TÀI LIỆU PDF =====
 documentary_archive_url = f"{BASE_URL}/DOCUMENTARY"
@@ -399,11 +402,11 @@ def sync_files_from_onedrive(token, share_url):
     def find_local_paths_by_name(filename):
         filename_lower = filename.lower()
         roots = [
-            REPORT_FORM_DIR,
-            IMAGE_LAYOUT_ARCHIVE_DIR,
-            IMAGE_GATEWAY_ARCHIVE_DIR,
-            IMAGE_SENSOR_ARCHIVE_DIR,
-            IMAGE_AL_ARCHIVE_DIR
+            REPORT_FORM_DIR, #<< Thư mục biểu mẫu
+            IMAGE_LAYOUT_ARCHIVE_DIR, #<< Thư mục ảnh Layout
+            IMAGE_GATEWAY_ARCHIVE_DIR, #<< Thư mục ảnh Gateway
+            IMAGE_SENSOR_ARCHIVE_DIR, #<< Thư mục ảnh Sensor
+            IMAGE_AL_ARCHIVE_DIR #<< Thư mục ảnh Alarm Point
         ]
         found = []
         for r in roots:
@@ -631,8 +634,16 @@ item_scrollbar.pack(side="right", fill="y")
 item_canvas.configure(yscrollcommand=item_scrollbar.set)
 item_canvas.bind('<Configure>', lambda e: item_canvas.configure(scrollregion=item_canvas.bbox("all")))
 
-item_frame = tk.Frame(item_canvas)   # nơi chứa các nút con
-item_canvas.create_window((0, 0), window=item_frame, anchor="nw")
+item_frame = tk.Frame(item_canvas)
+item_window = item_canvas.create_window((0, 0), window=item_frame, anchor="nw")
+
+def update_scrollregion(event=None):
+    item_canvas.configure(scrollregion=item_canvas.bbox("all"))
+    # Cho frame con luôn khớp chiều rộng với canvas
+    item_canvas.itemconfig(item_window, width=item_canvas.winfo_width())
+
+item_frame.bind("<Configure>", update_scrollregion)
+item_canvas.bind("<Configure>", update_scrollregion)
 
 # ==== FRAME CHO CÁC NÚT COPY, CLEAR, ĐỒNG HỒ, CATCH, CONTINUE ====
 ccdcc_frame = tk.Frame(main_frame) # copy, clear, đồng hồ, catch, continue: ccdcc
@@ -762,26 +773,37 @@ parent_items = []  # list chứa các nút cha
 
 # ==== THANH TÌM KIẾM CHO DANH SÁCH CON (item_frame) ====
 search_child_var = tk.StringVar()
-
 def filter_child_buttons(event=None):
     keyword = search_child_var.get().lower()
 
-    # Chia danh sách thành 2 nhóm: khớp và không khớp
+    # tìm state của parent đang active
+    current_state = None
+    for key, cfg in lists_config.items():
+        st = cfg["state"]()
+        if st["visible"]:  # đang mở
+            current_state = st
+            break
+
+    if not current_state:
+        return  # không có list nào mở
+
     matched = []
     unmatched = []
-    for btn in child_buttons:
+    for btn in current_state["buttons"]:
         if keyword in btn.cget("text").lower():
             matched.append(btn)
         else:
             unmatched.append(btn)
 
-    # Clear layout trước
-    for btn in child_buttons:
+    for btn in current_state["buttons"]:
         btn.pack_forget()
 
-    # Pack lại: matched trước, unmatched sau
     for btn in matched + unmatched:
         btn.pack(anchor='w', pady=1)
+
+    # 🔥 cập nhật scrollregion
+    item_canvas.update_idletasks()
+    item_canvas.configure(scrollregion=item_canvas.bbox("all"))
 
 search_child_entry = tk.Entry(item_search_frame, textvariable=search_child_var)
 search_child_entry.pack(fill="x", pady=5)
@@ -913,10 +935,18 @@ device_names_atqb = [
 ]
 
 device_names_abnc = [
-    "ABNC_FR&FC", "ABNC_POWER", "ABNC_FAN", "ABNC_LPG", "ABNC_NO_ERROR"
+    "ABNC_FR&FC", "ABNC_POWER", "ABNC_FAN", 
+    "ABNC_LPG", 
+    "ABNC_NO_ERROR"
 ]
 
-device_name_avg = [] #<< PENDING
+device_name_avg = [
+    "AVG_BAKERY", "AVG_CAFE", "AVG_DELICA", 
+    "AVG_FAN", "AVG_FISH", "AVG_FR&FC", 
+    "AVG_MEAT", "AVG_NOODLE", "AVG_POWER1F",
+    "AVG_POWER2F", "AVG_PRODUCT", "AVG_SUSHI",
+    "AVG_NO_ERROR"
+] 
 
 contact_sample = ["CONTACT_FORM"]
 confirm_sample = ["CONFIRM_FORM"]
@@ -1049,9 +1079,7 @@ def toggle_sub_buttons(state, item_dict, auto_select_first=False):
     if not state["visible"]:
         first_child_btn = None
         for idx, (label, file_id) in enumerate(item_dict.items()):
-            # ✅ Chỉ lấy phần thông tin quan trọng (bỏ prefix trước dấu _)
             short_label = label.split("_", 1)[-1] if "_" in label else label
-
             btn = tk.Button(item_frame, text=short_label, font=("Arial", 12))
 
             if "NO_ERROR" in label:
@@ -1068,12 +1096,17 @@ def toggle_sub_buttons(state, item_dict, auto_select_first=False):
                 ]
             btn.config(command=cmd)
             btn.pack(anchor='w', pady=1)
-            child_buttons.append(btn)  # Thêm vào danh sách nút con
+
             state["buttons"].append(btn)
 
             if idx == 0:
                 first_child_btn = btn
+
         state["visible"] = True
+
+        # update lại canvas scrollregion
+        item_canvas.update_idletasks()
+        item_canvas.configure(scrollregion=item_canvas.bbox("all"))
 
         if auto_select_first and first_child_btn:
             set_active_parent_button(state["button"])
@@ -1083,6 +1116,10 @@ def toggle_sub_buttons(state, item_dict, auto_select_first=False):
             btn.pack_forget()
         state["buttons"].clear()
         state["visible"] = False
+
+        # reset scrollregion khi đóng
+        item_canvas.update_idletasks()
+        item_canvas.configure(scrollregion=item_canvas.bbox("all"))
 
 # ==== TRẠNG THÁI ====
 list1_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
@@ -1890,19 +1927,23 @@ def create_new_window_image_daviteq(title):
 
             os.makedirs(save_dir, exist_ok=True)
 
-            # Đường dẫn file ảnh lưu về
-            local_path = os.path.join(save_dir, file["name"])
+            filename = file["name"]
+            local_path = os.path.join(save_dir, filename)
 
             # Nếu chưa có thì tải về
             if not os.path.exists(local_path):
-                img_path = download_file(file["id"], local_path)
+                img_path = download_file(token, file["id"], filename)  # ✅ đúng định nghĩa
+                if img_path and img_path != local_path:
+                    # Nếu download_file mặc định lưu về REPORT_FORM_DIR → copy sang save_dir
+                    shutil.copy(img_path, local_path)
+                    img_path = local_path
             else:
                 img_path = local_path
 
             if img_path and not str(img_path).startswith("ERROR"):
                 try:
                     img = Image.open(img_path)
-                    img.thumbnail((100, 75), Image.Resampling.LANCZOS) #Thu nhỏ khi hiển thị thumbnail trong giao diện
+                    img.thumbnail((100, 75), Image.Resampling.LANCZOS)  # Thumbnail
                     photo = ImageTk.PhotoImage(img)
 
                     row = (idx * 2) // max_columns
@@ -1912,46 +1953,26 @@ def create_new_window_image_daviteq(title):
                     label_img.image = photo
                     label_img.grid(row=row, column=col, padx=5, pady=(5, 0))
 
-                    label_text = tk.Label(image_frame, text=file["name"], bg="white", font=("Arial", 9))
+                    label_text = tk.Label(image_frame, text=filename, bg="white", font=("Arial", 9))
                     label_text.grid(row=row + 1, column=col, padx=5, pady=(0, 10))
 
-                    label_img.bind("<Button-1>", lambda e, path=img_path: open_large_image(path))
+                    # 👉 Khi bấm vào thumbnail thì mở bằng ứng dụng mặc định
+                    label_img.bind("<Button-1>", lambda e, path=img_path: open_with_default_app(path))
 
                 except Exception as e:
                     image_label.config(text=f"Lỗi xử lý ảnh: {e}", image='', bg="white")
                     break
 
-    def open_large_image(img_path): #Scale ảnh, giảm 50% tỷ lệ thực tế của ảnh hiển thị 
+    def open_with_default_app(img_path):
         try:
-            img = Image.open(img_path)
-
-            #Scale ảnh theo tỷ lệ 1:2 (giảm 50%)
-            scale_factor = 0.5
-            new_size = (int(img.width * scale_factor), int(img.height * scale_factor))
-            img_resized = img.resize(new_size, Image.Resampling.LANCZOS)
-
-            photo = ImageTk.PhotoImage(img_resized)
-
-            popup = tk.Toplevel()
-            popup.title("DAVITEQ IMAGE DATA (Scaled 1:2)")
-            popup.configure(bg="white")
-
-            lbl = tk.Label(popup, image=photo, bg="white")
-            lbl.image = photo
-            lbl.pack(padx=10, pady=10)
-
-            btn = tk.Button(popup, text="Edit Image", command=lambda: copy_image_to_clipboard(img))
-            btn.pack(pady=10)
-
+            if sys.platform.startswith("darwin"):  # macOS
+                subprocess.call(("open", img_path))
+            elif os.name == "nt":  # Windows
+                os.startfile(img_path)
+            elif os.name == "posix":  # Linux
+                subprocess.call(("xdg-open", img_path))
         except Exception as e:
-            print(f"Lỗi mở ảnh lớn: {e}")
-
-    def copy_image_to_clipboard(img):
-        try:
-            img.show()
-            pyperclip.copy("Image copied to clipboard!")
-        except Exception as e:
-            print(f"Lỗi copy ảnh: {e}")
+            print(f"Lỗi mở ảnh: {e}")
 
     new_window = tk.Toplevel()
     new_window.title(title)
@@ -2013,6 +2034,7 @@ def create_new_window_image_daviteq(title):
             "BDNC": list_files_from_url(layout_bdnc_url),
             "TQB": list_files_from_url(layout_tqb_url),
             "NVL": list_files_from_url(layout_nvl_url),
+            "VG": list_files_from_url(layout_vg_url),
         },
         "SENSOR": {
             "BDNC": list_files_from_url(sensor_bdnc_url),
@@ -2022,6 +2044,7 @@ def create_new_window_image_daviteq(title):
         "ALARMPOINT": {
             "TQB": list_files_from_url(al_tqb_url),
             "NVL": list_files_from_url(al_nvl_url),
+            "VG": list_files_from_url(al_vg_url),
         }
     }
 

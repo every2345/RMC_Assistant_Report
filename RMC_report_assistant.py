@@ -1223,7 +1223,7 @@ def create_new_window_contact(title, content=None):
             filename = target_file["name"]
 
             # === Tải file về ===
-            file_path = download_file(file_id, filename)
+            file_path = download_file(token, file_id, filename)
 
             if not file_path or not os.path.exists(file_path):
                 raise FileNotFoundError("File confirm không tồn tại sau khi tải.")
@@ -1388,7 +1388,8 @@ def create_new_window_status(title, content=None):
         filename = target_file["name"]
 
         # === Tải file về ===
-        file_path = download_file(file_id, filename)
+        # === Tải file về ===
+        file_path = download_file(token, file_id, filename)
 
         try:
             with open(file_path, 'r', encoding='utf-8') as f:

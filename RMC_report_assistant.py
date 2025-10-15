@@ -944,7 +944,7 @@ device_name_avg = [
     "AVG_BAKERY", "AVG_CAFE", "AVG_DELICA", 
     "AVG_FAN", "AVG_FISH", "AVG_FR&FC", 
     "AVG_MEAT", "AVG_NOODLE", "AVG_POWER1F",
-    "AVG_POWER2F", "AVG_PRODUCT", "AVG_SUSHI",
+    "AVG_POWER2F", "AVG_PRODUCT", "AVG_SUSHI", "AVG_BMS",
     "AVG_NO_ERROR"
 ] 
 
@@ -1008,7 +1008,7 @@ lists_config = {
     "list1-NVL": {"state": lambda: list1_state, "files": nvl_report_form_files},
     "list2-TQB": {"state": lambda: list2_state, "files": tqb_report_form_files},
     "list3-BDNC": {"state": lambda: list3_state, "files": bdnc_report_form_files},
-    "list4-VG": {"state": lambda: list4_state, "files": vg_report_form_share_url}, #<< AEON VAN GIAN PENDING
+    "list4-VG": {"state": lambda: list4_state, "files": vg_report_form_share_url}, 
     # sau này có thể thêm nhiều list khác ở đây
 }
 

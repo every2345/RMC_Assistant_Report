@@ -944,7 +944,7 @@ device_name_avg = [
     "AVG_BAKERY", "AVG_CAFE", "AVG_DELICA", 
     "AVG_FAN", "AVG_FISH", "AVG_FR&FC", 
     "AVG_MEAT", "AVG_NOODLE", "AVG_POWER1F",
-    "AVG_POWER2F", "AVG_PRODUCT", "AVG_SUSHI", "AVG_BMS",
+    "AVG_POWER2F", "AVG_PRODUCT", "AVG_SUSHI",
     "AVG_NO_ERROR"
 ] 
 
@@ -1008,7 +1008,7 @@ lists_config = {
     "list1-NVL": {"state": lambda: list1_state, "files": nvl_report_form_files},
     "list2-TQB": {"state": lambda: list2_state, "files": tqb_report_form_files},
     "list3-BDNC": {"state": lambda: list3_state, "files": bdnc_report_form_files},
-    "list4-VG": {"state": lambda: list4_state, "files": vg_report_form_share_url}, 
+    "list4-VG": {"state": lambda: list4_state, "files": vg_report_form_share_url}, #<< AEON VAN GIAN PENDING
     # sau này có thể thêm nhiều list khác ở đây
 }
 
@@ -1884,6 +1884,47 @@ def create_new_window_note():
 
         tree.column("Nội dung", width=200, anchor="w")
         tree.pack(fill=tk.BOTH, expand=True)
+
+        # ====== Xử lý nhấp đúp để xem chi tiết nội dung ======
+        def on_double_click(event):
+            selected_item = tree.identify_row(event.y)
+            selected_col = tree.identify_column(event.x)
+
+            if not selected_item:
+                return
+
+            # Xác định chỉ số cột (ví dụ: '#3' là cột Nội dung)
+            if selected_col == '#3':  # cột "Nội dung"
+                values = tree.item(selected_item, "values")
+                full_content = values[2]  # nội dung thực tế
+
+                # Tạo cửa sổ popup nhỏ hiển thị nội dung
+                popup = tk.Toplevel(note_window)
+                popup.title("Chi tiết nội dung ghi chú")
+                popup.geometry("400x250")
+                popup.transient(note_window)  # nằm trên cửa sổ chính
+                popup.grab_set()  # khóa focus vào popup
+
+                # Frame chính
+                frame = tk.Frame(popup, padx=10, pady=10)
+                frame.pack(fill="both", expand=True)
+
+                # Ô text cuộn để hiển thị nội dung
+                text_frame = tk.Frame(frame)
+                text_frame.pack(fill="both", expand=True, pady=5)
+
+                text_scroll = tk.Scrollbar(text_frame)
+                text_scroll.pack(side="right", fill="y")
+
+                text_box = tk.Text(text_frame, wrap="word", yscrollcommand=text_scroll.set, font=("Arial", 10))
+                text_box.insert("1.0", full_content)
+                text_box.config(state="disabled")  # chỉ xem, không sửa
+                text_box.pack(fill="both", expand=True)
+                text_scroll.config(command=text_box.yview)
+
+        # Gán sự kiện nhấp đúp chuột
+        tree.bind("<Double-1>", on_double_click)
+
 
         full_data = load_all_json_files()
         display_data(full_data)

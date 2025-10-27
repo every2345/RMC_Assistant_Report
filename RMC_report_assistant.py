@@ -944,7 +944,7 @@ device_name_avg = [
     "AVG_BAKERY", "AVG_CAFE", "AVG_DELICA", 
     "AVG_FAN", "AVG_FISH", "AVG_FR&FC", 
     "AVG_MEAT", "AVG_NOODLE", "AVG_POWER1F",
-    "AVG_POWER2F", "AVG_PRODUCT", "AVG_SUSHI",
+    "AVG_POWER2F", "AVG_PRODUCT", "AVG_SUSHI", "AVG_BMS",
     "AVG_NO_ERROR"
 ] 
 

@@ -18,6 +18,7 @@ from tkinter import ttk, messagebox
 import json
 import schedule
 import datetime 
+from tkcalendar import DateEntry
 
 
 # ==== Khởi tạo Tkinter root trước ====
@@ -922,6 +923,7 @@ def show_text_from_drive(file_id, filename, is_no_error=False, start_timer_flag=
 
     if start_timer_flag:
         start_timer()
+
 device_names_anvl = [
     "NVL_FR&FC", "NVL_FAN", "NVL_DELICA",
     "NVL_POWER_1", "NVL_POWER_2", "NVL_POWER_3", 
@@ -950,13 +952,13 @@ device_name_avg = [
 
 contact_sample = ["CONTACT_FORM"]
 confirm_sample = ["CONFIRM_FORM"]
+notification_sample = ["NOTIFICATION_FORM"]
 
 # Mapping riêng cho từng khu vực
 nvl_report_form_files = build_device_mapping(nvl_report_form_share_url, device_names_anvl)
 tqb_report_form_files = build_device_mapping(tqb_report_form_share_url, device_names_atqb)
 bdnc_report_form_files = build_device_mapping(bdnc_report_form_share_url, device_names_abnc)
-vg_report_form_share_url = build_device_mapping(vg_report_form_share_url, device_name_avg) #<< PENDING
-
+vg_report_form_share_url = build_device_mapping(vg_report_form_share_url, device_name_avg)
 
 # ==== TẠO GIAO DIỆN DANH SÁCH ====
 # >> Tạo biến trạng thái cho nút cha <<
@@ -1008,7 +1010,7 @@ lists_config = {
     "list1-NVL": {"state": lambda: list1_state, "files": nvl_report_form_files},
     "list2-TQB": {"state": lambda: list2_state, "files": tqb_report_form_files},
     "list3-BDNC": {"state": lambda: list3_state, "files": bdnc_report_form_files},
-    "list4-VG": {"state": lambda: list4_state, "files": vg_report_form_share_url}, #<< AEON VAN GIAN PENDING
+    "list4-VG": {"state": lambda: list4_state, "files": vg_report_form_share_url},
     # sau này có thể thêm nhiều list khác ở đây
 }
 
@@ -1026,7 +1028,6 @@ def toggle_list(target_key):
 
     # Bật/tắt list mục tiêu
     toggle_sub_buttons(target_state, target_files)
-
 
 # ==== SAO CHÉP VĂN BẢN ====
 def copy_text_to_clipboard():
@@ -1465,9 +1466,11 @@ def create_new_window_note():
             count += 1
         return count
 
+    #Cập nhật stt của note trên giao diện   
     def update_stt_label():
         current_stt.set(str(len([f for f in os.listdir(DATA_DIR) if f.endswith(".json")])))
 
+    # Lưu dữ liệu nhắc vào file mới
     def save_reminder_to_new_file(reminder_data):
         stt = get_next_stt()
         file_path = os.path.join(DATA_DIR, f"reminders{stt}.json")
@@ -1924,13 +1927,139 @@ def create_new_window_note():
 
         # Gán sự kiện nhấp đúp chuột
         tree.bind("<Double-1>", on_double_click)
-
-
         full_data = load_all_json_files()
         display_data(full_data)
 
+    def show_notification_form(content=None):
+        new_window = tk.Toplevel(root)
+        new_window.geometry("650x400")
+        new_window.title("Nhập thông tin Notification")
+        new_window.configure(bg="#f7f9fc")
+
+        # ====== Frame nhập liệu ======
+        form_frame = tk.Frame(new_window, bg="#f7f9fc")
+        form_frame.pack(padx=20, pady=10, fill="x")
+
+        # ==== Các trường nhập liệu ====
+        labels = ["Site:", "Description:", "Start Time:", "Start Date:",
+                  "End Time:", "End Date:", "Devices:", "Note:"]
+        entries = {}
+
+        for i, label in enumerate(labels):
+            tk.Label(form_frame, text=label, font=("Arial", 11), bg="#f7f9fc").grid(row=i, column=0, sticky="w", pady=5)
+            if "Description" in label or "Note" in label:
+                entry = tk.Text(form_frame, font=("Arial", 11), height=3, width=40)
+                entry.grid(row=i, column=1, pady=5, sticky="ew")
+            elif "Date" in label:
+                entry = DateEntry(form_frame, font=("Arial", 11), width=18,
+                                  background='darkblue', foreground='white', borderwidth=2)
+                entry.set_date(datetime.date.today())
+                entry.grid(row=i, column=1, pady=5, sticky="w")
+            else:
+                entry = tk.Entry(form_frame, font=("Arial", 11))
+                entry.grid(row=i, column=1, pady=5, sticky="ew")
+            entries[label.strip(":").lower()] = entry
+
+        form_frame.columnconfigure(1, weight=1)
+
+        # ====== Xử lý khi bấm OK ======
+        def handle_ok():
+            try:
+                # === Lấy dữ liệu từ form ===
+                site = entries["site"].get().strip()
+                description = entries["description"].get("1.0", tk.END).strip()
+                start_time = entries["start time"].get().strip()
+                start_date = entries["start date"].get_date()
+                end_time = entries["end time"].get().strip()
+                end_date = entries["end date"].get_date()
+                devices = entries["devices"].get().strip()
+                note = entries["note"].get("1.0", tk.END).strip()
+
+                # === Lấy danh sách file trong thư mục OneDrive ===
+                files = list_files_from_url(hotlines_and_confirm_form_url)
+
+                # === Tìm file notification ===
+                target_name = next(iter(notification_sample))  # ví dụ "NOTIFICATION_FORM"
+                target_file = next((f for f in files if target_name in f.get("name", "")), None)
+
+                if not target_file:
+                    raise FileNotFoundError(f"Không tìm thấy file chứa '{target_name}' trong thư mục OneDrive.")
+
+                file_id = target_file["id"]
+                # đảm bảo filename hợp lệ (loại bỏ path nếu có)
+                filename = target_file.get("name", "")
+                if not filename:
+                    raise ValueError("Tên file nhận từ OneDrive rỗng.")
+
+                filename = os.path.basename(filename)
+
+                # đảm bảo thư mục NOTE tồn tại và có quyền ghi
+                os.makedirs(NOTE_ARCHIVE_DIR, exist_ok=True)
+
+                # === Tải file về ===
+                file_path = download_file(token, file_id, filename)
+
+                # Kiểm tra kết quả: phải tồn tại và phải là file (không phải thư mục)
+                if not file_path or not os.path.exists(file_path) or not os.path.isfile(file_path):
+                    raise FileNotFoundError(f"File notification không tồn tại sau khi tải: {file_path}")
+
+                # === Đọc file notification template ===
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+
+                replaced_lines = []
+                for line in lines:
+                    original_line = line
+                    line = line.replace("[site]", site)
+                    line = line.replace("[description]", description)
+                    line = line.replace("[start_time]", start_time)
+                    line = line.replace("[start_date]", str(start_date))
+                    line = line.replace("[end_time]", end_time)
+                    line = line.replace("[end_date]", str(end_date))
+                    line = line.replace("[devices]", devices)
+                    line = line.replace("[note]", note)
+
+                    stripped_line = line.strip()
+                    if not stripped_line:
+                        continue
+                    replaced_lines.append(stripped_line)
+
+                content = '\n'.join(replaced_lines)
+
+                # === Hiển thị cửa sổ xem nội dung notification ===
+                result_window = tk.Toplevel(root)
+                result_window.title("Notification Content")
+                result_window.geometry("600x500")
+                result_window.configure(bg="#f7f9fc")
+
+                text_box = tk.Text(result_window, wrap="word", font=("Arial", 11), bg="white", height=20)
+                text_box.pack(padx=15, pady=15, fill="both", expand=True)
+                text_box.insert(tk.END, content)
+                text_box.config(state="disabled")
+
+                # === Nút Copy ===
+                def copy_to_clipboard():
+                    root.clipboard_clear()
+                    root.clipboard_append(content)
+                    messagebox.showinfo("Copied", "Đã sao chép nội dung notification vào clipboard!")
+
+                copy_btn = tk.Button(result_window, text="Copy", font=("Arial", 12, "bold"),
+                                     bg="#007BFF", fg="white", command=copy_to_clipboard)
+                copy_btn.pack(pady=10)
+
+                new_window.destroy()
+
+            except Exception as e:
+                messagebox.showerror("Lỗi", f"Lỗi khi xử lý notification: {e}")
+
+        # === Nút OK ===
+        ok_button = tk.Button(new_window, text="OK", font=("Arial", 12, "bold"),
+                              bg="green", fg="white", command=handle_ok)
+        ok_button.pack(pady=10)
+
     tk.Button(btn_frame, text="Tạo Note", width=20, command=show_create_note).pack(side="left", padx=10)
     tk.Button(btn_frame, text="Xem Note", width=20, command=show_view_notes).pack(side="left", padx=10)
+    tk.Button(btn_frame, text="Biểu mẫu thông báo", width=20, command=show_notification_form).pack(side="left", padx=10)
 
     current_stt = tk.StringVar()
     show_create_note()

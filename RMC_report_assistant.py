@@ -337,7 +337,6 @@ class GraphSession:
 # ==== Khởi tạo session Azure ====
 graph_session = GraphSession(CLIENT_ID, AUTHORITY, GRAPH_SCOPES, CACHE_FILE)
 
-# ==== Sử dụng trong các hàm API ====
 # ==== Lấy danh sách file từ link chia sẻ ====
 def list_files_from_url(share_url):
     token = graph_session.ensure_token()
@@ -1478,6 +1477,7 @@ def create_new_window_note():
             json.dump(reminder_data, f, ensure_ascii=False, indent=4)
         update_stt_label()
 
+    #Chức năng lập lịch nhắc nhở (reminder) theo thời gian, ngày và tháng định sẵn, kèm theo xử lý file khi thông báo được hiển thị
     def schedule_reminder(keyword, content, times, days, months, mode, file_path=None, delete_mode="delete"):
         for t in times:
             def job(t=t):
@@ -1515,6 +1515,7 @@ def create_new_window_note():
 
             schedule.every().day.at(t).do(job)
 
+    #Chức năng tạo nhắc (reminder)
     def add_reminder():
         keyword = keyword_entry.get().strip()
         content = content_entry.get().strip()
@@ -1607,6 +1608,7 @@ def create_new_window_note():
         schedule_reminder(keyword, content, times, days, months, mode, file_path, delete_mode_var.get())
         messagebox.showinfo("Thành công", f"Đã tạo note {get_next_stt()-1}.json", parent=note_window)
 
+    #Tạo hiệu ứng “placeholder” (gợi ý mờ bên trong ô nhập liệu)
     def set_placeholder(entry, text):
         entry.insert(0, text)
         entry.config(fg="gray")
@@ -1623,6 +1625,7 @@ def create_new_window_note():
         entry.bind("<FocusIn>", on_focus_in)
         entry.bind("<FocusOut>", on_focus_out)
 
+    #Đọc toàn bộ các file .json trong thư mục DATA_DIR, sau đó tải nội dung từng file lên chương trình để sử dụng
     def load_all_json_files():
         if not os.path.exists(DATA_DIR):
             messagebox.showerror("Lỗi", f"Không tìm thấy thư mục: {DATA_DIR}", parent=note_window)
@@ -1651,6 +1654,7 @@ def create_new_window_note():
                     print(f"Lỗi đọc {filename}: {e}")
         return all_data
 
+    #Hiển thị danh sách các dữ liệu (data_list) lên bảng Treeview, phân loại (gắn màu hoặc tag) các dòng theo trạng thái của lịch nhắc (còn hạn, hết hạn, hay lặp lại)
     def display_data(data_list):
         for row in tree.get_children():
             tree.delete(row)
@@ -1693,17 +1697,20 @@ def create_new_window_note():
                 mode
             ), tags=(tag,))
 
+    #Tìm kiếm và hiển thị kết quả lọc
     def search_data():
         keyword = search_var.get().lower()
         filtered = [item for item in full_data if keyword in item["keyword"].lower() or keyword in item["content"].lower()]
         display_data(filtered)
 
+    #Làm mới toàn bộ dữ liệu hiển thị
     def refresh_data():
         global full_data
         full_data = load_all_json_files()
         display_data(full_data)
         update_stt_label()  # cập nhật STT ghi chú tiếp theo
 
+    #Xóa các ghi chú (note hoặc reminder) mà người dùng chọn trong bảng (Treeview), xóa cả file JSON tương ứng trên ổ đĩa.
     def delete_selected_notes():
         global full_data
         selected_items = tree.selection()
@@ -1751,6 +1758,7 @@ def create_new_window_note():
     main_frame = tk.Frame(note_window)
     main_frame.pack(fill="both", expand=True)
 
+    #Giao diện tạo note
     def show_create_note():
         for w in main_frame.winfo_children():
             w.destroy()
@@ -1822,6 +1830,7 @@ def create_new_window_note():
 
         tk.Button(main_frame, text="Thêm Nhắc", command=add_reminder).pack(pady=15)
 
+    #Giao diện xem note 
     def show_view_notes():
         for w in main_frame.winfo_children():
             w.destroy()
@@ -1930,6 +1939,7 @@ def create_new_window_note():
         full_data = load_all_json_files()
         display_data(full_data)
 
+    #Giao diện tạo biểu mẫu thông báo 
     def show_notification_form(content=None):
         new_window = tk.Toplevel(root)
         new_window.geometry("650x400")

@@ -29,10 +29,16 @@ root.withdraw()   # Ẩn cửa sổ chính ban đầu
 BASE_URL = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE"
 
 # == LINK ONEDRIVE OF REPORT FORM ==
+##AEON NGUYEN VAN LINH
 nvl_report_form_share_url   = f"{BASE_URL}/REPORT%20FORM/NVL%20REPORT%20FORM"
+##AEON TA QUANG BUU
 tqb_report_form_share_url   = f"{BASE_URL}/REPORT%20FORM/TQB%20REPORT%20FORM"
+##AEON BINH DUONOG NEW CITY
 bdnc_report_form_share_url  = f"{BASE_URL}/REPORT%20FORM/BDNC%20REPORT%20FORM"
-vg_report_form_share_url    = f"{BASE_URL}/REPORT%20FORM/VG%20REPORT%20FORM"  
+##AEON VAN GIANG
+vg_report_form_share_url    = f"{BASE_URL}/REPORT%20FORM/VG%20REPORT%20FORM"
+##AEON MIDORI PARK
+mdr_report_form_share_url = f"{BASE_URL}/REPORT%20FORM/MDR%20REPORT%20FORM" 
 
 # == LINK ONEDRIVE OF HOTLINES AND CONTACT FORM ==
 hotlines_and_confirm_form_url = f"{BASE_URL}/HOTLINE_AND_CONFIRM_FORM"
@@ -55,7 +61,6 @@ sensor_bdnc_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/BDNC"
 sensor_tqb_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/TQB"
 sensor_nvl_url  = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/SENSOR/NVL"
 sensor_vg_url = f"" #<< PENDING
-
 
 # == ALARMPOINT ==
 al_nvl_url = f"{BASE_URL}/DAVITEQ/IMAGE_%20ARCHIVE/ALARM POINTS/NVL"
@@ -949,6 +954,16 @@ device_name_avg = [
     "AVG_NO_ERROR"
 ] 
 
+device_name_amdr = [
+    "MDR_BAKERY", "MDR_BMSGENERAL", "MDR_CAFE", "MDR_FIREPUMP", "MDR_FISH",
+    "MDR_FR&FC", "MDR_GENERATOR", "MDR_HIGHLEVELWATERTANK", "MDR_KOFKEF",
+    "MDR_LOWLEVELWATERTANK", "MDR_NO_ERROR", "MDR_NOODLE", "MDR_PRODUCT",
+    "MDR_PWRSUPPLY1", "MDR_PWRSUPPLY2", "MDR_SUPPLY3", "MDR_SERVER",
+    "MDR_SOCKET", "MDR_WATERSUPPLY", "MDR_WATERTANKBUMP"
+    ]
+
+#>>> ADD SITE LISTS HERE <<<   
+
 contact_sample = ["CONTACT_FORM"]
 confirm_sample = ["CONFIRM_FORM"]
 notification_sample = ["NOTIFICATION_FORM"]
@@ -958,6 +973,9 @@ nvl_report_form_files = build_device_mapping(nvl_report_form_share_url, device_n
 tqb_report_form_files = build_device_mapping(tqb_report_form_share_url, device_names_atqb)
 bdnc_report_form_files = build_device_mapping(bdnc_report_form_share_url, device_names_abnc)
 vg_report_form_share_url = build_device_mapping(vg_report_form_share_url, device_name_avg)
+mdr_report_form_share_url = build_device_mapping(mdr_report_form_share_url, device_name_amdr)   
+
+#>>> ADD SITE LISTS HERE <<<   
 
 # ==== TẠO GIAO DIỆN DANH SÁCH ====
 # >> Tạo biến trạng thái cho nút cha <<
@@ -1010,6 +1028,9 @@ lists_config = {
     "list2-TQB": {"state": lambda: list2_state, "files": tqb_report_form_files},
     "list3-BDNC": {"state": lambda: list3_state, "files": bdnc_report_form_files},
     "list4-VG": {"state": lambda: list4_state, "files": vg_report_form_share_url},
+    "list5-MDR": {"state": lambda: list5_state, "files": mdr_report_form_share_url},
+
+#>>> ADD SITE LISTS HERE <<<   
     # sau này có thể thêm nhiều list khác ở đây
 }
 
@@ -1126,12 +1147,18 @@ list1_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indic
 list2_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
 list3_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
 list4_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
+list5_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
+
+#>>> ADD SITE LISTS HERE <<<   
 
 # ==== TẠO DANH SÁCH GIAO DIỆN ====
 create_list_block(site_frame, "ANVL", nvl_report_form_files, lambda state: toggle_list("list1-NVL"), list1_state)
 create_list_block(site_frame, "ATQB", tqb_report_form_files, lambda state: toggle_list("list2-TQB"), list2_state)
 create_list_block(site_frame, "ABNC", bdnc_report_form_files, lambda state: toggle_list("list3-BDNC"), list3_state)
 create_list_block(site_frame, "AVG", bdnc_report_form_files, lambda state: toggle_list("list4-VG"), list4_state)
+create_list_block(site_frame, "AMDR", mdr_report_form_share_url, lambda state: toggle_list("list5-MDR"), list5_state)
+
+#>>> ADD SITE LISTS HERE <<<   
 
 # Khởi tạo auto select cho list1 (tùy chọn)
 toggle_sub_buttons(list1_state, nvl_report_form_files, auto_select_first=True)

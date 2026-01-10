@@ -28,7 +28,8 @@ root.withdraw()   # Ẩn cửa sổ chính ban đầu
 # ==== Thiết lập và Cấu hình Azure AD, OneDrive, đường dẫn lưu trữ và hơn thế nữa =============================================================================================================
 BASE_URL = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE"
 
-# == LINK ONEDRIVE OF REPORT FORM ==
+# ============= LINK ONEDRIVE OF REPORT FORM ===============
+# = FOR AEONMALL ==
 ##AEON NGUYEN VAN LINH
 nvl_report_form_share_url   = f"{BASE_URL}/REPORT%20FORM/NVL%20REPORT%20FORM"
 ##AEON TA QUANG BUU
@@ -39,6 +40,10 @@ bdnc_report_form_share_url  = f"{BASE_URL}/REPORT%20FORM/BDNC%20REPORT%20FORM"
 vg_report_form_share_url    = f"{BASE_URL}/REPORT%20FORM/VG%20REPORT%20FORM"
 ##AEON MIDORI PARK
 mdr_report_form_share_url = f"{BASE_URL}/REPORT%20FORM/MDR%20REPORT%20FORM" 
+
+# = FOR MAXVALUE =
+##MAXVALUE LACASTA
+lacasta_report_form_share_url = f"{BASE_URL}/REPORT%20FORM/MAXVALUE/LACASTA"
 
 # == LINK ONEDRIVE OF HOTLINES AND CONTACT FORM ==
 hotlines_and_confirm_form_url = f"{BASE_URL}/HOTLINE_AND_CONFIRM_FORM"
@@ -574,6 +579,20 @@ root.geometry("1080x680")
 main_frame = tk.Frame(root)
 main_frame.pack(expand=True, pady=40, padx=20)
 
+# ==== Frame đầu tiêu đề chứa phân loại khu vực ====
+model_classification = tk.Frame(main_frame)
+model_classification.pack()
+
+site_buttons = {
+    "AEONMALL": [],
+    "MAXVALUE": []
+}
+
+SITE_GROUP_ORDER = {
+    "AEONMALL": [],
+    "MAXVALUE": []
+}
+
 # ==== Frame con chứa văn bản và các nút bên phải ====
 show_text_and_multitasking_frame = tk.Frame(main_frame)
 show_text_and_multitasking_frame.pack()
@@ -670,7 +689,7 @@ box_frame.pack(pady=(10, 0))
 timer_frame = tk.Frame(main_frame)
 timer_frame.pack(pady=(10, 0))
 
-# === Khu vực tạo và cấu hình chức năng ===========================================================================================
+# === KHU VỰC TẠO VÀ CẤU HÌNH CHỨC NĂNG ===========================================================================================
 # ============== Chức năng tô màu ô tiến trình ==================
 boxes = [] # Danh sách các ô vuông
 box_colors = ["white"] * 6
@@ -783,7 +802,7 @@ def filter_child_buttons(event=None):
 
     # tìm state của parent đang active
     current_state = None
-    for key, cfg in lists_config.items():
+    for key, cfg in LIST_CONFIG.items():
         st = cfg["state"]()
         if st["visible"]:  # đang mở
             current_state = st
@@ -881,6 +900,47 @@ timer_label.pack()
 countdown_job = None
 time_left = 300  # 5 phút = 300 giây
 
+current_visible_group = "AEONMALL"
+
+def reset_all_lists():
+    # đóng toàn bộ list
+    for cfg in LIST_CONFIG.values():
+        st = cfg["state"]()
+        if st["visible"]:
+            toggle_sub_buttons(st, cfg["files"])
+
+    # xóa nút con còn sót
+    for widget in item_frame.winfo_children():
+        widget.destroy()
+
+    # reset trạng thái chọn
+    global active_parent_button, active_child_button
+    active_parent_button = None
+    active_child_button = None
+
+def show_site_group(group_name):
+    global current_visible_group
+    current_visible_group = group_name
+    reset_all_lists()
+
+    # Ẩn toàn bộ block_frame
+    for group_frames in SITE_GROUP_ORDER.values():
+        for frame in group_frames:
+            frame.pack_forget()
+
+    # Pack lại đúng thứ tự từ trên xuống
+    for frame in SITE_GROUP_ORDER[group_name]:
+        frame.pack(fill="x", pady=2)
+
+    # đổi màu nút phân loại
+    if group_name == "AEONMALL":
+        aeon_mall_button.config(bg="#ef3eb3")
+        maxvalue_button.config(bg="#a0a0a0")
+    else:
+        aeon_mall_button.config(bg="#a0a0a0")
+        maxvalue_button.config(bg="#c4005b")
+
+
 # === Hiển thị file văn bản từ OneDrive ===========================================================================
 # ==== LẤY DANH SÁCH FILE ONE DRIVE THEO TÊN ====
 def build_device_mapping(share_url, device_names):
@@ -893,7 +953,8 @@ def build_device_mapping(share_url, device_names):
             mapping[dev] = match["id"]
     return mapping
 
-# ==== CHỨC NĂNG HIỂN THỊ VĂN BẢN VÀ THỜI GIAN====
+# ===================== CHỨC NĂNG HIỂN THỊ VĂN BẢN VÀ THỜI GIAN =====================
+# ==== Hiển thị văn bản từ OneDrive vào Text widget ====
 def show_text_from_drive(file_id, filename, is_no_error=False, start_timer_flag=True):
     try:
         # ✅ Lấy token hợp lệ trước khi tải
@@ -928,6 +989,7 @@ def show_text_from_drive(file_id, filename, is_no_error=False, start_timer_flag=
     if start_timer_flag:
         start_timer()
 
+# == AEON MALL ==
 device_names_anvl = [
     "NVL_FR&FC", "NVL_FAN", "NVL_DELICA",
     "NVL_POWER_1", "NVL_POWER_2", "NVL_POWER_3", 
@@ -964,16 +1026,29 @@ device_name_amdr = [
 
 #>>> ADD SITE LISTS HERE <<<   
 
+# == MAXVALU ==
+device_names_lacasta = [
+    "LACASTA_CHEST", "LACASTA_ICECREAM", "LACASTA_UPRIGHT", "LACASTA_SHOWCASE",
+    "LACASTA_POWERSUPPLY",
+    "LACASTA_NO_ERROR"
+]
+
+#>>> ADD SITE LISTS HERE <<<   
+
 contact_sample = ["CONTACT_FORM"]
 confirm_sample = ["CONFIRM_FORM"]
 notification_sample = ["NOTIFICATION_FORM"]
 
-# Mapping riêng cho từng khu vực
+# ============= MAPPING RIÊNG CHO TỪNG KHU VỰC ================
+# == AEON MALL ==
 nvl_report_form_files = build_device_mapping(nvl_report_form_share_url, device_names_anvl)
 tqb_report_form_files = build_device_mapping(tqb_report_form_share_url, device_names_atqb)
 bdnc_report_form_files = build_device_mapping(bdnc_report_form_share_url, device_names_abnc)
 vg_report_form_share_url = build_device_mapping(vg_report_form_share_url, device_name_avg)
 mdr_report_form_share_url = build_device_mapping(mdr_report_form_share_url, device_name_amdr)   
+
+# == MAXVALUE ==
+lacasta_report_form_share_url = build_device_mapping(lacasta_report_form_share_url, device_names_lacasta)
 
 #>>> ADD SITE LISTS HERE <<<   
 
@@ -1004,6 +1079,7 @@ def set_active_child_button(btn):
     btn.config(bg="blue", fg="white")
     active_child_button = btn
 
+# ==== TẠO KHỐI DANH SÁCH CHA - Con====
 def create_list_block(parent, list_name, items, toggle_function, state):
     block_frame = tk.Frame(parent)
     block_frame.pack(pady=10, anchor='w')
@@ -1013,40 +1089,51 @@ def create_list_block(parent, list_name, items, toggle_function, state):
         text=list_name,
         font=("Arial", 14),
         width=12,
-        command=lambda: [set_active_parent_button(list_button), toggle_function(state)]
+        command=lambda: [
+            set_active_parent_button(list_button),
+            toggle_function()   # ✅ KHÔNG truyền state
+        ]
     )
     list_button.pack(anchor='w')
-    state["button"] = list_button
 
-    # lưu cả frame và button
-    parent_items.append((block_frame, list_button))
+    state["button"] = list_button
+    return block_frame   # ✅ TRẢ VỀ FRAME 
 
 # ==== HÀM BẬT TẮT DANH SÁCH ====
-# Định nghĩa mapping cho từng list
-lists_config = {
+# == Định nghĩa mapping cho từng list ==
+LIST_CONFIG = {
     "list1-NVL": {"state": lambda: list1_state, "files": nvl_report_form_files},
     "list2-TQB": {"state": lambda: list2_state, "files": tqb_report_form_files},
     "list3-BDNC": {"state": lambda: list3_state, "files": bdnc_report_form_files},
     "list4-VG": {"state": lambda: list4_state, "files": vg_report_form_share_url},
     "list5-MDR": {"state": lambda: list5_state, "files": mdr_report_form_share_url},
+    "lacasta": {"state": lambda: lacasta_state, "files": lacasta_report_form_share_url},
+}
 
-#>>> ADD SITE LISTS HERE <<<   
-    # sau này có thể thêm nhiều list khác ở đây
+LIST_GROUP_MAP = {
+    "list1-NVL": "AEONMALL",
+    "list2-TQB": "AEONMALL",
+    "list3-BDNC": "AEONMALL",
+    "list4-VG": "AEONMALL",
+    "list5-MDR": "AEONMALL",
+    "lacasta": "MAXVALUE"
 }
 
 def toggle_list(target_key):
-    # Lấy config của list cần bật/tắt
-    target_state = lists_config[target_key]["state"]()
-    target_files = lists_config[target_key]["files"]
+    target_state = LIST_CONFIG[target_key]["state"]()
+    target_files = LIST_CONFIG[target_key]["files"]
 
-    # Tắt các list khác
-    for key, cfg in lists_config.items():
+    # 🚨 chỉ cho mở đúng group đang hiển thị
+    if target_state["group"] != current_visible_group:
+        return
+
+    # đóng list khác
+    for key, cfg in LIST_CONFIG.items():
         if key != target_key:
             st = cfg["state"]()
             if st["visible"]:
                 toggle_sub_buttons(st, cfg["files"])
 
-    # Bật/tắt list mục tiêu
     toggle_sub_buttons(target_state, target_files)
 
 # ==== SAO CHÉP VĂN BẢN ====
@@ -1143,25 +1230,73 @@ def toggle_sub_buttons(state, item_dict, auto_select_first=False):
         item_canvas.configure(scrollregion=item_canvas.bbox("all"))
 
 # ==== TRẠNG THÁI ====
-list1_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
-list2_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
-list3_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
-list4_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
-list5_state = {"visible": False, "buttons": [], "indicator_canvas": None, "indicator_id": None}
+# == AEON MALL ==
+list1_state = {"visible": False, "buttons": [], "group": "AEONMALL"}
+list2_state = {"visible": False, "buttons": [], "group": "AEONMALL"}
+list3_state = {"visible": False, "buttons": [], "group": "AEONMALL"}
+list4_state = {"visible": False, "buttons": [], "group": "AEONMALL"}
+list5_state = {"visible": False, "buttons": [], "group": "AEONMALL"}
 
 #>>> ADD SITE LISTS HERE <<<   
+lacasta_state = {"visible": False, "buttons": [], "group": "MAXVALUE"}
+#MAXVALU
 
 # ==== TẠO DANH SÁCH GIAO DIỆN ====
-create_list_block(site_frame, "ANVL", nvl_report_form_files, lambda state: toggle_list("list1-NVL"), list1_state)
-create_list_block(site_frame, "ATQB", tqb_report_form_files, lambda state: toggle_list("list2-TQB"), list2_state)
-create_list_block(site_frame, "ABNC", bdnc_report_form_files, lambda state: toggle_list("list3-BDNC"), list3_state)
-create_list_block(site_frame, "AVG", bdnc_report_form_files, lambda state: toggle_list("list4-VG"), list4_state)
-create_list_block(site_frame, "AMDR", mdr_report_form_share_url, lambda state: toggle_list("list5-MDR"), list5_state)
+# == AEON MALL ==
+btn = create_list_block(
+    site_frame, "ANVL", nvl_report_form_files,
+    lambda: toggle_list("list1-NVL"),
+    list1_state
+)
+SITE_GROUP_ORDER["AEONMALL"].append(btn)
+
+btn = create_list_block(
+    site_frame, "ATQB", tqb_report_form_files,
+    lambda: toggle_list("list2-TQB"),
+    list2_state
+)
+SITE_GROUP_ORDER["AEONMALL"].append(btn)
+
+btn = create_list_block(
+    site_frame, "ABNC", bdnc_report_form_files,
+    lambda: toggle_list("list3-BDNC"),
+    list3_state
+)
+SITE_GROUP_ORDER["AEONMALL"].append(btn)
+
+btn = create_list_block(
+    site_frame, "AVG", vg_report_form_share_url,
+    lambda: toggle_list("list4-VG"),
+    list4_state
+)
+SITE_GROUP_ORDER["AEONMALL"].append(btn)
+
+btn = create_list_block(
+    site_frame, "AMDR", mdr_report_form_share_url,
+    lambda: toggle_list("list5-MDR"),
+    list5_state
+)
+SITE_GROUP_ORDER["AEONMALL"].append(btn)
+
+# == MAXVALU ==
+
+btn = create_list_block(
+    site_frame, "LACASTA", lacasta_report_form_share_url,
+    lambda: toggle_list("lacasta"),
+    lacasta_state
+)
+SITE_GROUP_ORDER["MAXVALUE"].append(btn)
 
 #>>> ADD SITE LISTS HERE <<<   
 
 # Khởi tạo auto select cho list1 (tùy chọn)
-toggle_sub_buttons(list1_state, nvl_report_form_files, auto_select_first=True)
+# 2. Mở list bằng cơ chế chuẩn (có kiểm soát group)
+toggle_list("list1-NVL")
+
+# 3. Auto select nút con đầu tiên (sau khi đã mở)
+if list1_state["buttons"]:
+    set_active_parent_button(list1_state["button"])
+    set_active_child_button(list1_state["buttons"][0])
 
 # ==== khu vực tạo các cửa sổ chức năng ================================================================================================================================
 # == Cửa sổ cho mục contact ==
@@ -2418,7 +2553,31 @@ def create_documentary_viewer(share_url):
     update_table()
     root.mainloop()
 
-# === Khu vực tạo các thành phần =======================================================================================================================================
+# === Khu vực tạo các nút thành phần =======================================================================================================================================
+#Nút phân loại trên cùng (maxvalue và aeon mall))
+aeon_mall_button = tk.Button(
+    model_classification,
+    text="AEONMALL",
+    font=("Arial", 10, "bold"),
+    bg="#ef3eb3",
+    fg="white",
+    width=15,
+    command=lambda: show_site_group("AEONMALL")
+)
+aeon_mall_button.pack(side="left", padx=(0, 5))
+
+maxvalue_button = tk.Button(
+    model_classification,
+    text="MAXVALUE",
+    font=("Arial", 10, "bold"),
+    bg="#a0a0a0",
+    fg="white",
+    width=15,
+    command=lambda: show_site_group("MAXVALUE")
+)
+maxvalue_button.pack(side="left")
+
+# Nút copy và clear (bên trái)
 copy_button = tk.Button(left_controls, text="Copy", font=("Arial", 10, "bold"), bg="#4CAF50", fg="white",
                         command=copy_text_to_clipboard, width=15)
 copy_button.pack(side="left", padx=(0, 5))
@@ -2475,10 +2634,9 @@ image_daviteq_button = tk.Button(left_button_frame, text="DAVITEQ", font=("Arial
                                  bg="#3fc4f3", fg="white", width=10, command=lambda: image_daviteq_action())
 image_daviteq_button.pack(pady=5)
 
-# ==== NÚT VAOF KHO DOCUMENTARY ====
+# ==== NÚT VÀO KHO DOCUMENTARY ====
 def rmc_drive_viewer_action():
     create_documentary_viewer(documentary_archive_url)
-
 rmc_drive_viewer_button = tk.Button(
     left_button_frame,
     text="Document",
@@ -2501,6 +2659,9 @@ def confirm_action():
 confirm_button = tk.Button(main_frame, text="Xác nhận", font=("Arial", 12, "bold"),
                            bg="#4CAF50", fg="white", command=confirm_action)
 confirm_button.pack(pady=10)
+
+# Mặc định hiển thị nhóm AEONMALL
+show_site_group("AEONMALL")
 
 # Bắt đầu cập nhật đồng hồ
 update_clock()

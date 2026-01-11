@@ -1134,7 +1134,7 @@ def toggle_list(target_key):
             if st["visible"]:
                 toggle_sub_buttons(st, cfg["files"])
 
-    toggle_sub_buttons(target_state, target_files)
+    toggle_sub_buttons(target_state, target_files, auto_select_first=True)
 
 # ==== SAO CHÉP VĂN BẢN ====
 def copy_text_to_clipboard():
@@ -1288,15 +1288,6 @@ btn = create_list_block(
 SITE_GROUP_ORDER["MAXVALUE"].append(btn)
 
 #>>> ADD SITE LISTS HERE <<<   
-
-# Khởi tạo auto select cho list1 (tùy chọn)
-# 2. Mở list bằng cơ chế chuẩn (có kiểm soát group)
-toggle_list("list1-NVL")
-
-# 3. Auto select nút con đầu tiên (sau khi đã mở)
-if list1_state["buttons"]:
-    set_active_parent_button(list1_state["button"])
-    set_active_child_button(list1_state["buttons"][0])
 
 # ==== khu vực tạo các cửa sổ chức năng ================================================================================================================================
 # == Cửa sổ cho mục contact ==
@@ -2662,6 +2653,9 @@ confirm_button.pack(pady=10)
 
 # Mặc định hiển thị nhóm AEONMALL
 show_site_group("AEONMALL")
+
+# Khởi tạo auto select cho list1 (tùy chọn)
+toggle_list("list1-NVL")
 
 # Bắt đầu cập nhật đồng hồ
 update_clock()

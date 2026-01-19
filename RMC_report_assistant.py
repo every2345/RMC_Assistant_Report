@@ -179,49 +179,6 @@ def show_device_login(flow):
 
     return win
 
-# == Cửa sổ kiểm tra dữ liệu ==
-def show_metadata_window(root, logo_path, message="Đang kiểm tra và cập nhật dữ liệu..."):
-    # Tạo cửa sổ nhỏ
-    splash = tk.Toplevel(root)
-    splash.title("Đồng bộ dữ liệu")
-    splash.geometry("400x200")
-    splash.resizable(False, False)
-
-    # Frame logo
-    frame_logo = tk.Frame(splash)
-    frame_logo.pack(pady=10)
-
-    try:
-        logo_img = Image.open(logo_path)
-        logo_img = logo_img.resize((100, 100))
-        logo = ImageTk.PhotoImage(logo_img)
-        logo_label = tk.Label(frame_logo, image=logo)
-        logo_label.image = logo
-        logo_label.pack()
-    except Exception as e:
-        tk.Label(frame_logo, text="[Không tải được logo]").pack()
-
-    # Frame trạng thái
-    frame_status = tk.Frame(splash)
-    frame_status.pack(pady=10, fill="x")
-
-    status_label = tk.Label(frame_status, text=message, font=("Arial", 11))
-    status_label.pack()
-
-    # Hàm cập nhật trạng thái rồi đóng splash
-    def update_and_close():
-        time.sleep(2)  # giả lập kiểm tra
-        status_label.config(text="Hoàn tất!")
-        time.sleep(1.5)
-        splash.destroy()
-
-    threading.Thread(target=update_and_close, daemon=True).start()
-
-    # Đảm bảo cửa sổ luôn nổi
-    splash.transient(root)
-    splash.grab_set()
-    root.wait_window(splash)
-
 # ==== Hàm đăng nhập Azure AD ====
 def authenticate():
     cache = msal.SerializableTokenCache()
@@ -536,6 +493,7 @@ def sync_files_from_onedrive(token, share_url):
     # Lưu metadata cuối cùng
     save_metadata(local_metadata)
 
+# ==== Bắt đầu đồng bộ dữ liệu từ OneDrive ==== 
 try:
     token = graph_session.ensure_token()
 
@@ -544,6 +502,8 @@ try:
     sync_files_from_onedrive(token, tqb_report_form_share_url)   # Gọi cho TQB
     sync_files_from_onedrive(token, bdnc_report_form_share_url)  # Gọi cho BDNC
     sync_files_from_onedrive(token, vg_report_form_share_url)    # Gọi cho VG
+    sync_files_from_onedrive(token, mdr_report_form_share_url)   # Gọi cho MDR
+    sync_files_from_onedrive(token, lacasta_report_form_share_url) # Gọi cho LACASTA
     sync_files_from_onedrive(token, hotlines_and_confirm_form_url)  # Gọi cho HOTLINE AND CONFIRM FORM
 
     # >> Cập nhật data cho các hình ảnh DAVITEQ <<
@@ -900,18 +860,23 @@ current_visible_group = "AEONMALL"
 
 # ==== Chức năng reset toàn bộ danh sách nút con và trạng thái chọn ====
 def reset_all_lists():
-    # đóng toàn bộ list
+    global active_parent_button, active_child_button
+
+    # đóng toàn bộ list con
     for cfg in LIST_CONFIG.values():
         st = cfg["state"]()
         if st["visible"]:
             toggle_sub_buttons(st, cfg["files"])
 
-    # xóa nút con còn sót
+        # reset màu nút CHA
+        if "button" in st and st["button"]:
+            st["button"].config(bg="SystemButtonFace", fg="black")
+
+    # xóa nút con còn sót trong item_frame
     for widget in item_frame.winfo_children():
         widget.destroy()
 
     # reset trạng thái chọn
-    global active_parent_button, active_child_button
     active_parent_button = None
     active_child_button = None
 
@@ -919,6 +884,8 @@ def reset_all_lists():
 def show_site_group(group_name):
     global current_visible_group
     current_visible_group = group_name
+
+    # reset toàn bộ trạng thái + màu
     reset_all_lists()
 
     # Ẩn toàn bộ block_frame
@@ -926,7 +893,7 @@ def show_site_group(group_name):
         for frame in group_frames:
             frame.pack_forget()
 
-    # Pack lại đúng thứ tự từ trên xuống
+    # Pack lại đúng thứ tự
     for frame in SITE_GROUP_ORDER[group_name]:
         frame.pack(fill="x", pady=2)
 
@@ -937,7 +904,6 @@ def show_site_group(group_name):
     else:
         aeon_mall_button.config(bg="#a0a0a0")
         maxvalue_button.config(bg="#c4005b")
-
 
 # === Hiển thị file văn bản từ OneDrive ===========================================================================
 # ==== LẤY DANH SÁCH FILE ONE DRIVE THEO TÊN ====
@@ -1044,6 +1010,8 @@ tqb_report_form_files = build_device_mapping(tqb_report_form_share_url, device_n
 bdnc_report_form_files = build_device_mapping(bdnc_report_form_share_url, device_names_abnc)
 vg_report_form_share_url = build_device_mapping(vg_report_form_share_url, device_name_avg)
 mdr_report_form_share_url = build_device_mapping(mdr_report_form_share_url, device_name_amdr)   
+
+#>>> ADD SITE LISTS HERE <<<   
 
 # == MAXVALUE ==
 lacasta_report_form_share_url = build_device_mapping(lacasta_report_form_share_url, device_names_lacasta)

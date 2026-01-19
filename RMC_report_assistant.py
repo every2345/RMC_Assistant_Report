@@ -583,11 +583,7 @@ main_frame.pack(expand=True, pady=40, padx=20)
 model_classification = tk.Frame(main_frame)
 model_classification.pack()
 
-site_buttons = {
-    "AEONMALL": [],
-    "MAXVALUE": []
-}
-
+# TẠO HÀNG ĐỢI PHÂN LOẠI ĐỂ CHỨA CÁC NÚT
 SITE_GROUP_ORDER = {
     "AEONMALL": [],
     "MAXVALUE": []
@@ -902,6 +898,7 @@ time_left = 300  # 5 phút = 300 giây
 
 current_visible_group = "AEONMALL"
 
+# ==== Chức năng reset toàn bộ danh sách nút con và trạng thái chọn ====
 def reset_all_lists():
     # đóng toàn bộ list
     for cfg in LIST_CONFIG.values():
@@ -918,6 +915,7 @@ def reset_all_lists():
     active_parent_button = None
     active_child_button = None
 
+# ==== Chức năng hiển thị nhóm site (AEONMALL hoặc MAXVALUE) ====
 def show_site_group(group_name):
     global current_visible_group
     current_visible_group = group_name
@@ -1079,7 +1077,7 @@ def set_active_child_button(btn):
     btn.config(bg="blue", fg="white")
     active_child_button = btn
 
-# ==== TẠO KHỐI DANH SÁCH CHA - Con====
+# ==== TẠO KHỐI DANH SÁCH CHA - CON ====
 def create_list_block(parent, list_name, items, toggle_function, state):
     block_frame = tk.Frame(parent)
     block_frame.pack(pady=10, anchor='w')
@@ -1091,13 +1089,13 @@ def create_list_block(parent, list_name, items, toggle_function, state):
         width=12,
         command=lambda: [
             set_active_parent_button(list_button),
-            toggle_function()   # ✅ KHÔNG truyền state
+            toggle_function()   
         ]
     )
     list_button.pack(anchor='w')
 
     state["button"] = list_button
-    return block_frame   # ✅ TRẢ VỀ FRAME 
+    return block_frame
 
 # ==== HÀM BẬT TẮT DANH SÁCH ====
 # == Định nghĩa mapping cho từng list ==
@@ -1278,8 +1276,9 @@ btn = create_list_block(
 )
 SITE_GROUP_ORDER["AEONMALL"].append(btn)
 
-# == MAXVALU ==
+#>>> ADD SITE LISTS HERE <<<   
 
+# == MAXVALU ==
 btn = create_list_block(
     site_frame, "LACASTA", lacasta_report_form_share_url,
     lambda: toggle_list("lacasta"),
@@ -2568,27 +2567,52 @@ maxvalue_button = tk.Button(
 )
 maxvalue_button.pack(side="left")
 
-# Nút copy và clear (bên trái)
-copy_button = tk.Button(left_controls, text="Copy", font=("Arial", 10, "bold"), bg="#4CAF50", fg="white",
-                        command=copy_text_to_clipboard, width=15)
+# Nút copy (bên trái)
+copy_button = tk.Button(
+    left_controls, 
+    text="Copy", 
+    font=("Arial", 10, "bold"), 
+    bg="#4CAF50", 
+    fg="white",
+    command=copy_text_to_clipboard, 
+    width=15)
 copy_button.pack(side="left", padx=(0, 5))
 
-clear_button = tk.Button(left_controls, text="Clear", font=("Arial", 10, "bold"), bg="#f44336", fg="white",
-                         command=clear_text_output, width=15)
+# Nút clear (bên trái)
+clear_button = tk.Button(
+    left_controls, text="Clear", 
+    font=("Arial", 10, "bold"), 
+    bg="#f44336", fg="white",
+    command=clear_text_output, 
+    width=15)
 clear_button.pack(side="left")
 
 # Catch (ngoài cùng bên phải)
-catch_button = tk.Button(right_controls, text="Catch", font=("Arial", 10, "bold"), bg="#029B82", fg="white",
-                         command=catch_clock, width=10)
+catch_button = tk.Button(
+    right_controls, 
+    text="Catch", 
+    font=("Arial", 10, "bold"), 
+    bg="#029B82", fg="white",
+    command=catch_clock, 
+    width=10)
 catch_button.pack(side='right', padx=5)
 
 # Clock (giữa)
-clock_label = tk.Label(right_controls, font=("Roboto", 20, "bold"), fg="#D20103",)
+clock_label = tk.Label(
+    right_controls, 
+    font=("Roboto", 20, "bold"), 
+    fg="#D20103",)
 clock_label.pack(side='right', padx=10)
 
 # Continue (ngoài cùng bên trái của cụm)
-continue_button = tk.Button(right_controls, text="Continue", font=("Arial", 10, "bold"), bg="#2196F3", fg="white",
-                            command=continue_clock, width=10)
+continue_button = tk.Button(
+    right_controls, 
+    text="Continue", 
+    font=("Arial", 10, "bold"), 
+    bg="#2196F3", 
+    fg="white",
+    command=continue_clock, 
+    width=10)
 continue_button.pack(side='right', padx=5)
 
 # ==== NÚT CONTACT ====
@@ -2597,8 +2621,15 @@ def contact_action():
         create_new_window_contact("Contact")
         on_category_click()
         reset_timer()
-contact_button = tk.Button(left_button_frame, text="Contact", font=("Arial", 12, "bold"),
-                           bg="#2196F3", fg="white", width=10, command=lambda: contact_action())
+
+contact_button = tk.Button(
+    left_button_frame, 
+    text="Contact", 
+    font=("Arial", 12, "bold"),
+    bg="#2196F3", 
+    fg="white", 
+    width=10, 
+    command=lambda: contact_action())
 contact_button.pack(pady=5)
 
 # ==== NÚT STATUS ====
@@ -2607,22 +2638,40 @@ def status_action():
         create_new_window_status("Status")
         on_category_click()
         reset_timer()
-status_button = tk.Button(left_button_frame, text="Status", font=("Arial", 12, "bold"),
-                          bg="#FF9800", fg="white", width=10, command=lambda: status_action())
+status_button = tk.Button(
+    left_button_frame, 
+    text="Status", 
+    font=("Arial", 12, "bold"),
+    bg="#FF9800", 
+    fg="white", 
+    width=10, 
+    command=lambda: status_action())
 status_button.pack(pady=5)
 
 # ==== NÚT NOTE ====
 def note_action():
     create_new_window_note()
-note_button = tk.Button(left_button_frame, text="Note", font=("Arial", 12, "bold"),
-                        bg="#873e23", fg="white", width=10, command=lambda: note_action())
+note_button = tk.Button(
+    left_button_frame, 
+    text="Note", 
+    font=("Arial", 12, "bold"),
+    bg="#873e23", 
+    fg="white", 
+    width=10, 
+    command=lambda: note_action())
 note_button.pack(pady=5)
 
 # ==== NÚT KHO ẢNH DAVITEQ ====
 def image_daviteq_action():
     create_new_window_image_daviteq("DAVITEQ")
-image_daviteq_button = tk.Button(left_button_frame, text="DAVITEQ", font=("Arial", 12, "bold"),
-                                 bg="#3fc4f3", fg="white", width=10, command=lambda: image_daviteq_action())
+image_daviteq_button = tk.Button(
+    left_button_frame, 
+    text="DAVITEQ", 
+    font=("Arial", 12, "bold"),
+    bg="#3fc4f3", 
+    fg="white", 
+    width=10, 
+    command=lambda: image_daviteq_action())
 image_daviteq_button.pack(pady=5)
 
 # ==== NÚT VÀO KHO DOCUMENTARY ====
@@ -2647,8 +2696,12 @@ def confirm_action():
                 break  # Đảm bảo chỉ tô một ô
             else:
                 break  # Dừng lại nếu chưa đủ điều kiện
-confirm_button = tk.Button(main_frame, text="Xác nhận", font=("Arial", 12, "bold"),
-                           bg="#4CAF50", fg="white", command=confirm_action)
+confirm_button = tk.Button(
+    main_frame, 
+    text="Xác nhận", 
+    font=("Arial", 12, "bold"),
+    bg="#4CAF50", fg="white", 
+    command=confirm_action)
 confirm_button.pack(pady=10)
 
 # Mặc định hiển thị nhóm AEONMALL

@@ -921,13 +921,10 @@ def build_device_mapping(share_url, device_names):
 # ==== Hiển thị văn bản từ OneDrive vào Text widget ====
 def show_text_from_drive(file_id, filename, is_no_error=False, start_timer_flag=True):
     try:
-        # ✅ Lấy token hợp lệ trước khi tải
         token = graph_session.ensure_token()
-
-        # ✅ Gọi đúng hàm download_file với 3 tham số
         file_path = download_file(token, file_id, filename)
 
-        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
 
         if is_no_error:
@@ -936,18 +933,21 @@ def show_text_from_drive(file_id, filename, is_no_error=False, start_timer_flag=
             lines = [timestamp if '[no_error_time]' in line else line for line in lines]
         else:
             delayed_time = datetime.datetime.now() - datetime.timedelta(minutes=1)
-            current_time = delayed_time.strftime("+ Thời gian: %H:%M:%S %d-%m-%Y ") + '\n'
+            current_time = "+ Thời gian: " + delayed_time.strftime("%H:%M:%S %d-%m-%Y") + '\n'
             lines = [current_time if '[time]' in line else line for line in lines]
 
         content = ''.join(lines)
 
-    except Exception as e:
-        content = f"Không thể mở file: {e}"
+    except Exception:
+        import traceback
+        content = traceback.format_exc()
 
-    # ✅ Cập nhật vào Text widget
+    # ✅ Encode an toàn trước khi hiển thị
+    safe_content = content.encode("utf-8", errors="replace").decode("utf-8")
+
     output_text.config(state='normal')
     output_text.delete("1.0", tk.END)
-    output_text.insert(tk.END, content)
+    output_text.insert(tk.END, safe_content)
     output_text.config(state='disabled')
 
     if start_timer_flag:

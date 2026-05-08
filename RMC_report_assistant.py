@@ -28,10 +28,8 @@ root.withdraw()   # Ẩn cửa sổ chính ban đầu
 # ==== Thiết lập và Cấu hình Azure AD, OneDrive, đường dẫn lưu trữ và hơn thế nữa =============================================================================================================
 BASE_URL = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE"
 
-#https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/REPORT%20FORM/NVL%20REPORT%20FORM
-
 # ============= LINK ONEDRIVE OF REPORT FORM ===============
-# == FOR AEONMALL ==
+# = FOR AEONMALL ==
 ##AEON NGUYEN VAN LINH
 nvl_report_form_share_url   = f"{BASE_URL}/REPORT%20FORM/NVL%20REPORT%20FORM"
 ##AEON TA QUANG BUU
@@ -223,7 +221,7 @@ def authenticate():
 
     return result
 
-# ==== Chức năng Đăng nhập Azure ====
+# ==== Đăng nhập Azure ====
 try:
     result = authenticate()
     if "access_token" not in result:
@@ -322,48 +320,22 @@ def list_files_from_url(share_url):
         return []
 
 # ==== Tải file từ OneDrive (sử dụng token truyền vào) ====
-def download_file(token, file_id, filename, share_url):
-
+def download_file(token, file_id, filename):
     cache_path = os.path.join(REPORT_FORM_DIR, filename)
-
     if os.path.exists(cache_path):
         return cache_path
 
-    # Encode share URL
-    encoded_url = base64.b64encode(
-        share_url.encode("utf-8")
-    ).decode("utf-8")
-
-    encoded_url = encoded_url.rstrip("=")\
-                             .replace("/", "_")\
-                             .replace("+", "-")
-
-    # Download trực tiếp từ shared folder
-    url = (
-        f"https://graph.microsoft.com/v1.0/"
-        f"shares/u!{encoded_url}"
-        f"/driveItem/items/{file_id}/content"
-    )
-
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
-
+    url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content"
+    headers = {"Authorization": f"Bearer {token}"}
     r = requests.get(url, headers=headers, stream=True)
 
     if r.status_code == 200:
-
         with open(cache_path, "wb") as f:
             for chunk in r.iter_content(1024):
                 f.write(chunk)
-
         return cache_path
-
     else:
-        print(f"❌ Lỗi tải file {filename}")
-        print(r.status_code)
-        print(r.text)
-
+        print(f"❌ Lỗi tải file {filename}: {r.status_code}")
         return None
 
 # >> Quản lý và lưu trữ METADATA để thực hiện cập nhật và đồng bộ dữ liệu
@@ -509,7 +481,7 @@ def sync_files_from_onedrive(token, share_url):
 
         # Nếu cần tải -> gọi download_file và cập nhật metadata
         if need_download:
-            filepath = download_file(token, file_id,file_name, share_url)
+            filepath = download_file(token, file_id, file_name)
             if filepath:
                 # đảm bảo local path có tồn tại
                 local_metadata[file_id] = {
@@ -653,7 +625,7 @@ def update_scrollregion(event=None):
 item_frame.bind("<Configure>", update_scrollregion)
 item_canvas.bind("<Configure>", update_scrollregion)
 
-# ==== FRAME CHO CÁC NÚT COPY, CLEAR, ĐỒNG HỒ, CATCH, CONTINUE,... (Giao diện nút chức năng) =============================================================================================================================
+# ==== FRAME CHO CÁC NÚT COPY, CLEAR, ĐỒNG HỒ, CATCH, CONTINUE ====
 ccdcc_frame = tk.Frame(main_frame) # copy, clear, đồng hồ, catch, continue: ccdcc
 ccdcc_frame.pack(fill='x', pady=(10, 0)) # giãn ngang (theo trục X)
 
@@ -832,12 +804,12 @@ def clear_text_output():
 # ==== Chức năng bắt và tiếp tục đồng hồ thời gian thực của hệ thống ====
 is_running = True
 
-# >> Chức năng bắt thời gian (ngừng đồng hồ thười gian thực) ( CATCH BUTTON ) <<
+# >> Chức năng bắt thời gian (ngừng đồng hồ thười gian thực) <<
 def catch_clock():
     global is_running
     is_running = False
 
-# >> Chức năng tiếp tục đồng hồi thười gian thực ( CONTINUE BUTTON ) <<
+# >> Chức năng tiếp tục đồng hồi thười gian thực <<
 def continue_clock():
     global is_running
     is_running = True
@@ -884,7 +856,6 @@ timer_label.pack()
 countdown_job = None
 time_left = 300  # 5 phút = 300 giây
 
-# === Hiển thị trang đầu tiên là nhóm AEONMALL ====
 current_visible_group = "AEONMALL"
 
 # ==== Chức năng reset toàn bộ danh sách nút con và trạng thái chọn ====
@@ -934,7 +905,7 @@ def show_site_group(group_name):
         aeon_mall_button.config(bg="#a0a0a0")
         maxvalue_button.config(bg="#c4005b")
 
-# === Hiển thị file văn bản từ OneDrive ======================================================================================================================================================
+# === Hiển thị file văn bản từ OneDrive ===========================================================================
 # ==== LẤY DANH SÁCH FILE ONE DRIVE THEO TÊN ====
 def build_device_mapping(share_url, device_names):
     files = list_files_from_url(share_url)  # ✅ chỉ truyền share_url
@@ -1034,7 +1005,7 @@ contact_sample = ["CONTACT_FORM"]
 confirm_sample = ["CONFIRM_FORM"]
 notification_sample = ["NOTIFICATION_FORM"]
 
-# ============= MAPPING RIÊNG CHO TỪNG KHU VỰC ================================================================================================================================================================================================================
+# ============= MAPPING RIÊNG CHO TỪNG KHU VỰC ================
 # == AEON MALL ==
 nvl_report_form_files = build_device_mapping(nvl_report_form_share_url, device_names_anvl)
 tqb_report_form_files = build_device_mapping(tqb_report_form_share_url, device_names_atqb)
@@ -1538,6 +1509,7 @@ def create_new_window_status(title, content=None):
         file_id = target_file["id"]
         filename = target_file["name"]
 
+        # === Tải file về ===
         # === Tải file về ===
         file_path = download_file(token, file_id, filename)
 

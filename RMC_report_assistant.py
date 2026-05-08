@@ -29,7 +29,7 @@ root.withdraw()   # Ẩn cửa sổ chính ban đầu
 BASE_URL = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE"
 
 # ============= LINK ONEDRIVE OF REPORT FORM ===============
-# = FOR AEONMALL ==
+# == FOR AEONMALL ==
 ##AEON NGUYEN VAN LINH
 nvl_report_form_share_url   = f"{BASE_URL}/REPORT%20FORM/NVL%20REPORT%20FORM"
 ##AEON TA QUANG BUU
@@ -221,7 +221,7 @@ def authenticate():
 
     return result
 
-# ==== Đăng nhập Azure ====
+# ==== Chức năng Đăng nhập Azure ====
 try:
     result = authenticate()
     if "access_token" not in result:
@@ -625,7 +625,7 @@ def update_scrollregion(event=None):
 item_frame.bind("<Configure>", update_scrollregion)
 item_canvas.bind("<Configure>", update_scrollregion)
 
-# ==== FRAME CHO CÁC NÚT COPY, CLEAR, ĐỒNG HỒ, CATCH, CONTINUE ====
+# ==== FRAME CHO CÁC NÚT COPY, CLEAR, ĐỒNG HỒ, CATCH, CONTINUE,... (Giao diện nút chức năng) =============================================================================================================================
 ccdcc_frame = tk.Frame(main_frame) # copy, clear, đồng hồ, catch, continue: ccdcc
 ccdcc_frame.pack(fill='x', pady=(10, 0)) # giãn ngang (theo trục X)
 
@@ -804,12 +804,12 @@ def clear_text_output():
 # ==== Chức năng bắt và tiếp tục đồng hồ thời gian thực của hệ thống ====
 is_running = True
 
-# >> Chức năng bắt thời gian (ngừng đồng hồ thười gian thực) <<
+# >> Chức năng bắt thời gian (ngừng đồng hồ thười gian thực) ( CATCH BUTTON ) <<
 def catch_clock():
     global is_running
     is_running = False
 
-# >> Chức năng tiếp tục đồng hồi thười gian thực <<
+# >> Chức năng tiếp tục đồng hồi thười gian thực ( CONTINUE BUTTON ) <<
 def continue_clock():
     global is_running
     is_running = True
@@ -856,6 +856,7 @@ timer_label.pack()
 countdown_job = None
 time_left = 300  # 5 phút = 300 giây
 
+# === Hiển thị trang đầu tiên là nhóm AEONMALL ====
 current_visible_group = "AEONMALL"
 
 # ==== Chức năng reset toàn bộ danh sách nút con và trạng thái chọn ====
@@ -1005,7 +1006,7 @@ contact_sample = ["CONTACT_FORM"]
 confirm_sample = ["CONFIRM_FORM"]
 notification_sample = ["NOTIFICATION_FORM"]
 
-# ============= MAPPING RIÊNG CHO TỪNG KHU VỰC ================
+# ============= MAPPING RIÊNG CHO TỪNG KHU VỰC ================================================================================================================================================================================================================
 # == AEON MALL ==
 nvl_report_form_files = build_device_mapping(nvl_report_form_share_url, device_names_anvl)
 tqb_report_form_files = build_device_mapping(tqb_report_form_share_url, device_names_atqb)
@@ -1509,7 +1510,6 @@ def create_new_window_status(title, content=None):
         file_id = target_file["id"]
         filename = target_file["name"]
 
-        # === Tải file về ===
         # === Tải file về ===
         file_path = download_file(token, file_id, filename)
 

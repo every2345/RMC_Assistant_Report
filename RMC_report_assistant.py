@@ -28,6 +28,8 @@ root.withdraw()   # Ẩn cửa sổ chính ban đầu
 # ==== Thiết lập và Cấu hình Azure AD, OneDrive, đường dẫn lưu trữ và hơn thế nữa =============================================================================================================
 BASE_URL = "https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE"
 
+#https://aeondelight-my.sharepoint.com/personal/phuc_nguyen_aeondelight_biz/Documents/PHUC/PHUC/AZURE/RMC%20DATA%20STORAGE/REPORT%20FORM/NVL%20REPORT%20FORM
+
 # ============= LINK ONEDRIVE OF REPORT FORM ===============
 # == FOR AEONMALL ==
 ##AEON NGUYEN VAN LINH
@@ -320,22 +322,48 @@ def list_files_from_url(share_url):
         return []
 
 # ==== Tải file từ OneDrive (sử dụng token truyền vào) ====
-def download_file(token, file_id, filename):
+def download_file(token, file_id, filename, share_url):
+
     cache_path = os.path.join(REPORT_FORM_DIR, filename)
+
     if os.path.exists(cache_path):
         return cache_path
 
-    url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content"
-    headers = {"Authorization": f"Bearer {token}"}
+    # Encode share URL
+    encoded_url = base64.b64encode(
+        share_url.encode("utf-8")
+    ).decode("utf-8")
+
+    encoded_url = encoded_url.rstrip("=")\
+                             .replace("/", "_")\
+                             .replace("+", "-")
+
+    # Download trực tiếp từ shared folder
+    url = (
+        f"https://graph.microsoft.com/v1.0/"
+        f"shares/u!{encoded_url}"
+        f"/driveItem/items/{file_id}/content"
+    )
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
     r = requests.get(url, headers=headers, stream=True)
 
     if r.status_code == 200:
+
         with open(cache_path, "wb") as f:
             for chunk in r.iter_content(1024):
                 f.write(chunk)
+
         return cache_path
+
     else:
-        print(f"❌ Lỗi tải file {filename}: {r.status_code}")
+        print(f"❌ Lỗi tải file {filename}")
+        print(r.status_code)
+        print(r.text)
+
         return None
 
 # >> Quản lý và lưu trữ METADATA để thực hiện cập nhật và đồng bộ dữ liệu
@@ -481,7 +509,7 @@ def sync_files_from_onedrive(token, share_url):
 
         # Nếu cần tải -> gọi download_file và cập nhật metadata
         if need_download:
-            filepath = download_file(token, file_id, file_name)
+            filepath = download_file(token, file_id,file_name, share_url)
             if filepath:
                 # đảm bảo local path có tồn tại
                 local_metadata[file_id] = {
@@ -906,7 +934,7 @@ def show_site_group(group_name):
         aeon_mall_button.config(bg="#a0a0a0")
         maxvalue_button.config(bg="#c4005b")
 
-# === Hiển thị file văn bản từ OneDrive ===========================================================================
+# === Hiển thị file văn bản từ OneDrive ======================================================================================================================================================
 # ==== LẤY DANH SÁCH FILE ONE DRIVE THEO TÊN ====
 def build_device_mapping(share_url, device_names):
     files = list_files_from_url(share_url)  # ✅ chỉ truyền share_url

@@ -20,7 +20,6 @@ import schedule
 import datetime 
 from tkcalendar import DateEntry
 
-
 # ==== Khởi tạo Tkinter root trước ====
 root = tk.Tk()
 root.withdraw()   # Ẩn cửa sổ chính ban đầu 
@@ -1076,6 +1075,7 @@ LIST_CONFIG = {
     "list4-VG": {"state": lambda: list4_state, "files": vg_report_form_share_url},
     "list5-MDR": {"state": lambda: list5_state, "files": mdr_report_form_share_url},
     "lacasta": {"state": lambda: lacasta_state, "files": lacasta_report_form_share_url},
+    #>>> ADD SITE LISTS HERE <<<  
 }
 
 LIST_GROUP_MAP = {
@@ -1085,6 +1085,7 @@ LIST_GROUP_MAP = {
     "list4-VG": "AEONMALL",
     "list5-MDR": "AEONMALL",
     "lacasta": "MAXVALUE"
+    #>>> ADD SITE LISTS HERE <<<  
 }
 
 def toggle_list(target_key):
@@ -1399,49 +1400,53 @@ def create_new_window_contact(title, content=None):
 def create_new_window_status(title, content=None):
     new_window = tk.Toplevel(root)
     new_window.title(title)
-    new_window.geometry("600x500")
-
+    new_window.geometry("700x600")
+ 
     confirm_var = tk.StringVar(value="confirmed")
-
+ 
     # Tình trạng confirm
     confirm_frame = tk.LabelFrame(new_window, text="Đã confirm chưa?", font=("Arial", 12, "bold"))
     confirm_frame.pack(padx=20, pady=10, fill="x")
-
+ 
     def toggle_entry_fields():
         if confirm_var.get() == "not_confirmed":
             dept_entry.config(state="normal")
             device_entry.config(state="normal")
             status_entry.config(state="readonly")
+            start_date_entry.config(state="normal")
             start_time_entry.config(state="normal")
+            end_date_entry.config(state="normal")
             end_time_entry.config(state="normal")
             desc_entry.config(state="normal")
         else:
             dept_entry.config(state="disabled")
             device_entry.config(state="disabled")
             status_entry.config(state="readonly")
+            start_date_entry.config(state="disabled")
             start_time_entry.config(state="disabled")
+            end_date_entry.config(state="disabled")
             end_time_entry.config(state="disabled")
             desc_entry.config(state="disabled")
-
+ 
     tk.Radiobutton(confirm_frame, text="Đã confirm", variable=confirm_var, value="confirmed",
                    command=toggle_entry_fields).pack(anchor="w", padx=10, pady=2)
     tk.Radiobutton(confirm_frame, text="Chưa confirm", variable=confirm_var, value="not_confirmed",
                    command=toggle_entry_fields).pack(anchor="w", padx=10, pady=2)
-
+ 
     # Form nhập liệu
     form_frame = tk.Frame(new_window)
     form_frame.pack(padx=20, pady=10, fill="x")
-
+ 
     tk.Label(form_frame, text="Tên bộ phận:", font=("Arial", 11)).grid(row=0, column=0, sticky="w", pady=5)
     dept_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
     dept_entry.grid(row=0, column=1, pady=5, sticky="ew")
-
+ 
     tk.Label(form_frame, text="Tên thiết bị:", font=("Arial", 11)).grid(row=1, column=0, sticky="w", pady=5)
     device_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
     device_entry.grid(row=1, column=1, pady=5, sticky="ew")
-
+ 
     tk.Label(form_frame, text="Tình trạng:", font=("Arial", 11)).grid(row=2, column=0, sticky="w", pady=5)
-
+ 
     status_entry = ttk.Combobox(
         form_frame,
         font=("Arial", 11),
@@ -1449,86 +1454,178 @@ def create_new_window_status(title, content=None):
         values=["Alarm - Chưa xử lý", "Alarm - Đã xử lý", "Alarm - Chờ xử lý", "Normal - Đã xử lý", "Normal - Chờ xử lý", "Không chọn"]
     )
     status_entry.grid(row=2, column=1, pady=5, sticky="ew")
-
-    # Đặt giá trị mặc định
     status_entry.set("Không chọn")
-
-    tk.Label(form_frame, text="Thời gian bắt đầu (HH:MM):", font=("Arial", 11)).grid(row=3, column=0, sticky="w", pady=5)
+ 
+    # ===== THỜI GIAN BẮT ĐẦU (ngày + giờ) =====
+    tk.Label(form_frame, text="Ngày bắt đầu:", font=("Arial", 11)).grid(row=3, column=0, sticky="w", pady=5)
+    start_date_entry = DateEntry(
+        form_frame,
+        font=("Arial", 11),
+        width=18,
+        background='darkblue',
+        foreground='white',
+        borderwidth=2,
+        state="disabled"
+    )
+    start_date_entry.set_date(datetime.date.today())
+    start_date_entry.grid(row=3, column=1, pady=5, sticky="w")
+ 
+    tk.Label(form_frame, text="Thời gian bắt đầu (HH:MM):", font=("Arial", 11)).grid(row=4, column=0, sticky="w", pady=5)
     start_time_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
-    start_time_entry.grid(row=3, column=1, pady=5, sticky="ew")
-
-    tk.Label(form_frame, text="Thời gian kết thúc (HH:MM):", font=("Arial", 11)).grid(row=4, column=0, sticky="w", pady=5)
+    start_time_entry.insert(0, "00:00")  # Giá trị mặc định
+    start_time_entry.grid(row=4, column=1, pady=5, sticky="ew")
+ 
+    # ===== THỜI GIAN KẾT THÚC (ngày + giờ) =====
+    tk.Label(form_frame, text="Ngày kết thúc:", font=("Arial", 11)).grid(row=5, column=0, sticky="w", pady=5)
+    end_date_entry = DateEntry(
+        form_frame,
+        font=("Arial", 11),
+        width=18,
+        background='darkblue',
+        foreground='white',
+        borderwidth=2,
+        state="disabled"
+    )
+    end_date_entry.set_date(datetime.date.today())
+    end_date_entry.grid(row=5, column=1, pady=5, sticky="w")
+ 
+    tk.Label(form_frame, text="Thời gian kết thúc (HH:MM):", font=("Arial", 11)).grid(row=6, column=0, sticky="w", pady=5)
     end_time_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
-    end_time_entry.grid(row=4, column=1, pady=5, sticky="ew")
-
-    tk.Label(form_frame, text="Mô tả:", font=("Arial", 11)).grid(row=5, column=0, sticky="nw", pady=5)
-    desc_entry = tk.Text(form_frame, font=("Arial", 11), height=5, width=40, state="disabled")
-    desc_entry.grid(row=5, column=1, pady=5, sticky="ew")
-
+    end_time_entry.insert(0, "00:00")  # Giá trị mặc định
+    end_time_entry.grid(row=6, column=1, pady=5, sticky="ew")
+ 
+    tk.Label(form_frame, text="Mô tả:", font=("Arial", 11)).grid(row=7, column=0, sticky="nw", pady=5)
+    desc_entry = tk.Text(form_frame, font=("Arial", 11), height=4, width=40, state="disabled")
+    desc_entry.grid(row=7, column=1, pady=5, sticky="ew")
+ 
     form_frame.columnconfigure(1, weight=1)
     toggle_entry_fields()
-
+ 
     def handle_ok():
         if confirm_var.get() != "not_confirmed":
             new_window.destroy()
             return
-
+ 
         dept = dept_entry.get().strip()
         device = device_entry.get().strip()
         status = status_entry.get().strip()
+        
+        # Lấy ngày và giờ
+        start_date = start_date_entry.get_date()
         start_time_str = start_time_entry.get().strip()
+        
+        end_date = end_date_entry.get_date()
         end_time_str = end_time_entry.get().strip()
+        
         desc = desc_entry.get("1.0", tk.END).strip()
-
-        # === Tính thời gian xử lý ===
+ 
+        # === Tính thời gian xử lý (bao gồm cả ngày) ===
+        time = ""
         try:
             if start_time_str and end_time_str:
                 fmt = "%H:%M"
-                start_dt = datetime.datetime.strptime(start_time_str, fmt)
-                end_dt = datetime.datetime.strptime(end_time_str, fmt)
-                diff_minutes = int((end_dt - start_dt).total_seconds() / 60)
-                if diff_minutes < 0:
-                    diff_minutes += 24 * 60  # xử lý qua ngày
-                time = f"{diff_minutes} phút ({start_time_str} - {end_time_str})"
+                
+                # Parse giờ phút
+                start_time_obj = datetime.datetime.strptime(start_time_str, fmt).time()
+                end_time_obj = datetime.datetime.strptime(end_time_str, fmt).time()
+                
+                # Kết hợp với ngày để có datetime object
+                start_datetime = datetime.datetime.combine(start_date, start_time_obj)
+                end_datetime = datetime.datetime.combine(end_date, end_time_obj)
+                
+                # Tính chênh lệch
+                diff = end_datetime - start_datetime
+                
+                # Nếu end < start (có thể do người dùng nhập sai) → xử lý
+                if diff.total_seconds() < 0:
+                    messagebox.showwarning("Cảnh báo", 
+                        "Thời gian kết thúc phải sau thời gian bắt đầu!\n"
+                        "Vui lòng kiểm tra lại ngày và giờ.",
+                        parent=new_window)
+                    return
+                
+                # Chuyển đổi sang phút và ngày
+                total_seconds = diff.total_seconds()
+                total_minutes = int(total_seconds // 60)
+                days = total_minutes // (24 * 60)
+                minutes = total_minutes % (24 * 60)
+                hours = minutes // 60
+                mins = minutes % 60
+                
+                # Tạo chuỗi mô tả thời gian
+                # ===== Tạo chuỗi mô tả thời gian =====
+
+                # Nếu cùng ngày → chỉ hiện giờ
+                if start_date == end_date:
+
+                    # Nếu có ngày
+                    if days > 0:
+                        time = (
+                            f"{days} ngày {hours} giờ {mins} phút "
+                            f"({start_time_str} → {end_time_str})"
+                        )
+                    else:
+                        time = (
+                            f"{hours} giờ {mins} phút "
+                            f"({start_time_str} → {end_time_str})"
+                        )
+
+                # Nếu khác ngày → hiện đầy đủ ngày + giờ
+                else:
+
+                    start_full = f"{start_date.strftime('%d-%m-%Y')} {start_time_str}"
+                    end_full = f"{end_date.strftime('%d-%m-%Y')} {end_time_str}"
+
+                    if days > 0:
+                        time = (
+                            f"{days} ngày {hours} giờ {mins} phút "
+                            f"({start_full} → {end_full})"
+                        )
+                    else:
+                        time = (
+                            f"{hours} giờ {mins} phút "
+                            f"({start_full} → {end_full})"
+                        )
             else:
                 time = ""
-        except ValueError:
-            time = ""
-
+        except ValueError as e:
+            messagebox.showerror("Lỗi định dạng", 
+                "Vui lòng nhập giờ theo định dạng HH:MM (ví dụ: 14:30)",
+                parent=new_window)
+            return
+ 
         # === Tải file confirm từ OneDrive ===
-        # === Lấy danh sách file trong thư mục OneDrive ===
-        files = list_files_from_url(hotlines_and_confirm_form_url)
-
-        # === Tìm file confirm ===
-        target_name = next(iter(confirm_sample))  # "CONFIRM_FORM"
-        target_file = next((f for f in files if target_name in f["name"]), None)
-
-        if not target_file:
-            raise FileNotFoundError(f"Không tìm thấy file chứa '{target_name}' trong thư mục OneDrive.")
-
-        file_id = target_file["id"]
-        filename = target_file["name"]
-
-        # === Tải file về ===
-        # === Tải file về ===
-        file_path = download_file(token, file_id, filename)
-
         try:
+            files = list_files_from_url(hotlines_and_confirm_form_url)
+ 
+            # === Tìm file confirm ===
+            target_name = next(iter(confirm_sample))  # "CONFIRM_FORM"
+            target_file = next((f for f in files if target_name in f["name"]), None)
+ 
+            if not target_file:
+                raise FileNotFoundError(f"Không tìm thấy file chứa '{target_name}' trong thư mục OneDrive.")
+ 
+            file_id = target_file["id"]
+            filename = target_file["name"]
+ 
+            # === Tải file về ===
+            file_path = download_file(token, file_id, filename)
+ 
             with open(file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
-
+ 
             replaced_lines = []
             for line in lines:
                 original_line = line
-
+ 
                 line = line.replace("[tilte]", dept)
                 line = line.replace("[device]", device)
                 line = line.replace("[status]", status)
                 line = line.replace("[time_process]", time)
                 line = line.replace("[description]", desc)
-
+ 
                 stripped_line = line.strip()
-
+ 
                 if ("[tilte]" in original_line and not dept) or \
                    ("[device]" in original_line and not device) or \
                    ("[status]" in original_line and not status) or \
@@ -1536,25 +1633,25 @@ def create_new_window_status(title, content=None):
                    ("[description]" in original_line and not desc) or \
                    not stripped_line:
                     continue
-
+ 
                 replaced_lines.append(stripped_line)
-
+ 
             content = '\n'.join(replaced_lines)
-
+ 
         except Exception as e:
             content = f"Lỗi khi xử lý file confirm: {e}"
-
+ 
         # === Hiển thị nội dung ra output_text ===
         output_text.config(state='normal')
         output_text.delete("1.0", tk.END)
         output_text.insert(tk.END, content)
         output_text.config(state='disabled')
-
+ 
         # Tô ô 2 nếu ô 1 đã được tô
         fill_box(2)
-
+ 
         new_window.destroy()
-
+ 
     ok_button = tk.Button(new_window, text="OK", font=("Arial", 12, "bold"),
                           bg="green", fg="white", command=handle_ok)
     ok_button.pack(pady=10)

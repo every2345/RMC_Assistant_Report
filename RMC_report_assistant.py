@@ -15,6 +15,7 @@ import threading
 from tkinter import ttk, messagebox
 import json
 import schedule
+from tkcalendar import DateEntry
 
 # ==== Khởi tạo Tkinter root trước ====
 root = tk.Tk()
@@ -41,55 +42,84 @@ CACHE_DIR = r"D:\RMC_Assistant_v3\Cache"
 CACHE_FILE = os.path.join(CACHE_DIR, "token_cache.bin")
 
 # ============ Đường dân local trên máy tính để lưu trữ cache ================
-# == đường dẫn lưu trữ các biểu mẫu ==
-REPORT_FORM_DIR = r"D:\RMC_Assistant_v3\Report_Form_Cache"
+APP_ROOT = os.path.join(os.environ["LOCALAPPDATA"],"RMC_Assistant_v3")
+# ==========================================================
+# CACHE
+# ==========================================================
+CACHE_DIR = os.path.join(APP_ROOT, "Cache")
+CACHE_FILE = os.path.join(CACHE_DIR, "token_cache.bin")
+# ==========================================================
+# REPORT FORM
+# ==========================================================
+REPORT_FORM_DIR = os.path.join(APP_ROOT, "Report_Form_Cache")
+AEONGMS_DIR = os.path.join(REPORT_FORM_DIR, "AEONGMS")
+AEONMAXVALU_DIR = os.path.join(REPORT_FORM_DIR, "MAXVALU")
+# ==========================================================
+# NOTE
+# ==========================================================
+NOTE_ARCHIVE_DIR = os.path.join(APP_ROOT, "NOTE")
+# ==========================================================
+# IMAGE
+# ==========================================================
+IMAGE_ROOT_DIR = os.path.join(APP_ROOT, "IMAGE")
+AEONGMSIMG_DIR = os.path.join(IMAGE_ROOT_DIR, "AEONGMS")
+MAXVALUIMG_DIR = os.path.join(IMAGE_ROOT_DIR, "MAXVALU")
 
-#Tạo thư mục lưu trữ file báo cáo cho các nhanh khác nhau
-AEONGMS_DIR = r"D:\RMC_Assistant_v3\Report_Form_Cache\AEONGMS" #<====== Thư mục dành riêng cho việc lưu trữ biểu mẫu của AEON GMS
-AEONMAXVALU_DIR = r"D:\RMC_Assistant_v3\Report_Form_Cache\MAXVALU" #<====== Thư mục dành riêng cho việc lưu trữ biểu mẫu của AEON MAXVALU
+# AEON GMS IMG ARCHIVE
+AEONGMS_IMAGE_LAYOUT_ARCHIVE_DIR = os.path.join(AEONGMSIMG_DIR, "LAYOUT")
+AEONGMS_IMAGE_GATEWAY_ARCHIVE_DIR = os.path.join(AEONGMSIMG_DIR, "GATEWAY")
+AEONGMS_IMAGE_SENSOR_ARCHIVE_DIR = os.path.join(AEONGMSIMG_DIR, "SENSOR")
+AEONGMS_IMAGE_AL_ARCHIVE_DIR = os.path.join(AEONGMSIMG_DIR, "ALARM_POINTS") # Đã sửa thành ALARM_POINTS
 
-# == đường dẫn lưu trữ các ghi chú ==
-NOTE_ARCHIVE_DIR = r"D:\RMC_Assistant_v3\NOTE"
+# AEON MAXVALU IMG ARCHIVE
+MAXVALU_IMAGE_LAYOUT_ARCHIVE_DIR = os.path.join(MAXVALUIMG_DIR, "LAYOUT")
+MAXVALU_IMAGE_GATEWAY_ARCHIVE_DIR = os.path.join(MAXVALUIMG_DIR, "GATEWAY")
+MAXVALU_IMAGE_SENSOR_ARCHIVE_DIR = os.path.join(MAXVALUIMG_DIR, "SENSOR")
+MAXVALU_IMAGE_AL_ARCHIVE_DIR = os.path.join(MAXVALUIMG_DIR, "ALARM_POINTS")
+# ==========================================================
+# DOCUMENTARY
+# ==========================================================
+DOCUMENTARY_ARCHIVE_DIR = os.path.join(APP_ROOT,"DOCUMENTARY")
+# ==========================================================
+# METADATA
+# ==========================================================
+METADATA_DIR = os.path.join(APP_ROOT,"METADATA")
+# ==========================================================
+# TẠO THƯ MỤC NẾU CHƯA TỒN TẠI
+# ==========================================================
+folders = [
+    APP_ROOT,
+    CACHE_DIR,
+    REPORT_FORM_DIR,
+    AEONGMS_DIR,
+    AEONMAXVALU_DIR,
+    NOTE_ARCHIVE_DIR,
+    IMAGE_ROOT_DIR,
+    
+    # Nhánh thư mục AEON GMS
+    AEONGMSIMG_DIR,
+    AEONGMS_IMAGE_LAYOUT_ARCHIVE_DIR,
+    AEONGMS_IMAGE_GATEWAY_ARCHIVE_DIR,
+    AEONGMS_IMAGE_SENSOR_ARCHIVE_DIR,
+    AEONGMS_IMAGE_AL_ARCHIVE_DIR,
 
-# == đường dẫn lưu trữ các hình ảnh ==
-IMAGE_LAYOUT_ARCHIVE_DIR = r"D:\RMC_Assistant_v3\IMAGE\LAYOUT"
-IMAGE_GATEWAY_ARCHIVE_DIR = r"D:\RMC_Assistant_v3\IMAGE\GATEWAY"
-IMAGE_SENSOR_ARCHIVE_DIR = r"D:\RMC_Assistant_v3\IMAGE\SENSOR"
-IMAGE_AL_ARCHIVE_DIR = r"D:\RMC_Assistant_v3\IMAGE\ALARMPOINT"
+    # Nhánh thư mục MAXVALU
+    MAXVALUIMG_DIR,
+    MAXVALU_IMAGE_LAYOUT_ARCHIVE_DIR,
+    MAXVALU_IMAGE_GATEWAY_ARCHIVE_DIR,
+    MAXVALU_IMAGE_SENSOR_ARCHIVE_DIR,
+    MAXVALU_IMAGE_AL_ARCHIVE_DIR,
 
-# == đường dẫn lưu trữ các tài liệu ==
-DOCUMENTARY_ARCHIVE_DIR = r"D:\RMC_Assistant_v3\DOCUMENTARY"
+    DOCUMENTARY_ARCHIVE_DIR,
+    METADATA_DIR
+]
+for folder in folders:
+    os.makedirs(folder, exist_ok=True)
 
-# == Đường dẫn METADATA ==
-METADATA_DIR = r"D:\RMC_Assistant_v3\METADATA"
-
-# === Khu vực tạo các thư mục lưu trữ nếu chưa có ===
-# Tạo thư mục lưu trữ cache
-os.makedirs(CACHE_DIR, exist_ok=True)
-
-# Tạo thư lục lưu trữ biểu mẫu chung
-os.makedirs(REPORT_FORM_DIR, exist_ok=True)
-
-# Tạo thư lục lưu trữ biểu mẫu chung
-os.makedirs(AEONGMS_DIR, exist_ok=True) #<====== Thư mục dành riêng cho việc lưu trữ biểu mẫu của AEON GMS
-os.makedirs(AEONMAXVALU_DIR, exist_ok=True) #<====== Thư mục dành riêng cho việc lưu trữ biểu mẫu của AEON MAXVALU
-
-#Tạo thư mục lưu trữ ghi chú
-os.makedirs(NOTE_ARCHIVE_DIR, exist_ok=True)
-
-# Tạo thư mục lưu trữ hình ảnh
-os.makedirs(IMAGE_LAYOUT_ARCHIVE_DIR, exist_ok=True)
-os.makedirs(IMAGE_GATEWAY_ARCHIVE_DIR, exist_ok=True)
-os.makedirs(IMAGE_SENSOR_ARCHIVE_DIR, exist_ok=True)
-os.makedirs(IMAGE_AL_ARCHIVE_DIR, exist_ok=True)
-
-# Tạo thư mục lưu trữ tài liệu
-os.makedirs(DOCUMENTARY_ARCHIVE_DIR, exist_ok=True)
-
-# Tạo thư mục METADATA
-os.makedirs(METADATA_DIR, exist_ok=True)
-
-#Biến lưu trữ nguồn báo cáo hiện tại đang xử lý (mặc định là AEON GMS)
+print("APP_ROOT =", APP_ROOT)
+# ==========================================================
+# BIẾN HỆ THỐNG
+# ==========================================================
 CURRENT_SOURCE = "AEONGMS"
 ALL_REPORT_MAPPINGS = {
     "AEONGMS": {},
@@ -215,7 +245,6 @@ FIRST_RUN_FILE = os.path.join(
 )
 def is_first_run():
     return not os.path.exists(FIRST_RUN_FILE)
-
 def create_first_run_flag():
     now = datetime.datetime.now().strftime(
         "%Y-%m-%d %H:%M:%S"
@@ -249,7 +278,6 @@ def create_first_run_flag():
         )
 
     print("✅ Đã tạo first_run.flag")
-
 def first_time_auto_sync():
     try:
         print("🚀 FIRST RUN DETECTED")
@@ -785,7 +813,7 @@ def sync_files_from_onedrive(token, share_url, save_dir):
         if need_download:
             filepath = download_file(token,share_url,file_id,file_name,save_dir)
             if filepath:
-                print(f"⬇️ Downloaded: {file_name}")
+                print(f"⬇️ Saved: {file_name}")
                 local_metadata[file_id] = {
                     "name": file_name,
                     "lastModifiedDateTime": last_modified,
@@ -798,35 +826,43 @@ def sync_files_from_onedrive(token, share_url, save_dir):
 # ==== Bắt đầu đồng bộ dữ liệu từ OneDrive ===================================================== 
 # ==== GET SAVE DIRECTORY FROM PATH =====================================================
 def get_save_dir_from_path(folder_path):
-
     path_upper = folder_path.upper()
+    
+    # Nhận diện phân hệ nguồn từ OneDrive
+    is_aeongms = "AEONGMS" in path_upper
+    is_maxvalu = "MAXVALU" in path_upper
 
     # =====================================================
     # SENSOR
     # =====================================================
     if "SENSOR" in path_upper:
-        return IMAGE_SENSOR_ARCHIVE_DIR
+        if is_aeongms: return AEONGMS_IMAGE_SENSOR_ARCHIVE_DIR
+        if is_maxvalu: return MAXVALU_IMAGE_SENSOR_ARCHIVE_DIR
+        return None
 
     # =====================================================
     # GATEWAY
     # =====================================================
     elif "GATEWAY" in path_upper:
-        return IMAGE_GATEWAY_ARCHIVE_DIR
+        if is_aeongms: return AEONGMS_IMAGE_GATEWAY_ARCHIVE_DIR
+        if is_maxvalu: return MAXVALU_IMAGE_GATEWAY_ARCHIVE_DIR
+        return None
 
     # =====================================================
     # LAYOUT
     # =====================================================
     elif "LAYOUT" in path_upper:
-        return IMAGE_LAYOUT_ARCHIVE_DIR
+        if is_aeongms: return AEONGMS_IMAGE_LAYOUT_ARCHIVE_DIR
+        if is_maxvalu: return MAXVALU_IMAGE_LAYOUT_ARCHIVE_DIR
+        return None
 
     # =====================================================
-    # ALARM POINT
+    # ALARM POINT / ALARM POINTS
     # =====================================================
-    elif (
-        "ALARM_POINT" in path_upper
-        or "ALARM_POINTS" in path_upper
-    ):
-        return IMAGE_AL_ARCHIVE_DIR
+    elif "ALARM_POINT" in path_upper or "ALARM_POINTS" in path_upper:
+        if is_aeongms: return AEONGMS_IMAGE_AL_ARCHIVE_DIR
+        if is_maxvalu: return MAXVALU_IMAGE_AL_ARCHIVE_DIR
+        return None
 
     # =====================================================
     # REPORT FORM - AEON GMS
@@ -916,7 +952,7 @@ def auto_sync_all_onedrive():
 # Tạo cửa sổ chính
 root = tk.Tk()
 root.title("RMC Report Assistant")
-root.geometry("1080x800")
+root.geometry("1366x768")
 
 # Frame chính
 main_frame = tk.Frame(root)
@@ -931,7 +967,7 @@ left_button_frame = tk.Frame(content_frame)
 left_button_frame.pack(side="left", fill="y", padx=10, pady=10)
 
 # === Text để hiển thị văn bản ===
-output_text = tk.Text(content_frame, font=("Arial", 13), width=60, height=20, wrap="word")
+output_text = tk.Text(content_frame, font=("Arial", 13), width=60, height=17, wrap="word")
 output_text.pack(side='left', pady=(10, 0), padx=10)
 output_text.config(state='disabled')
 
@@ -969,9 +1005,24 @@ for i in range(6):
     lbl.grid(row=0, column=i, padx=5)
     boxes.append(lbl)
 
-# ==== TẠO hint_label nằm dưới box_frame ====
-hint_label = tk.Label(main_frame, text="Quy trình xử lý sự cố đang đợi", wraplength=800, justify="left", font=("Arial", 11), fg="black")
-hint_label.pack(pady=(10, 20))  # Giữa box_frame và nút xác nhận
+# =========================================================
+# KHUNG CHỨA HINT CỐ ĐỊNH KÍCH THƯỚC
+# =========================================================
+# Định nghĩa chiều rộng (width) và chiều cao (height) cố định cho khung gợi ý
+hint_container = tk.Frame(main_frame, width=800, height=30, bg="SystemButtonFace")
+hint_container.pack(pady=(10, 20))
+hint_container.pack_propagate(False) # KHÓA CỨNG KÍCH THƯỚC: Ép khung không giãn theo chữ
+
+# Đưa hint_label vào trong hint_container (bỏ bớt phần wraplength tĩnh)
+hint_label = tk.Label(
+    hint_container, 
+    text="Quy trình xử lý sự cố đang đợi", 
+    justify="left", 
+    font=("Arial", 10), 
+    fg="black"
+)
+# Sử dụng fill="both" và expand=True để chữ tự căn đều trong khung cố định
+hint_label.pack(fill="both", expand=True)
 
 # ==== Hàm xử lý tô màu ====
 def on_category_click():
@@ -984,7 +1035,7 @@ def on_category_click():
     elif green_count == 2:
         update_hint("Tiếp tục theo dõi và cập nhật sự cố liên tục. Nếu như sau một khoảng thời gian không nhận được thông tin gì từ phía bên Site kể từ thời điểm đã liên hệ với Site (1 - 2 tiếng) và đã thông tin lên group chung (). Tiến hành liên hệ lại với Site để xác minh tình trạng kiếm tra thiết bị và nguyên nhân (nếu có). Tiến hành cập nhập lại tình hình thiết bị lên nhóm group chung về tình hình khắc phục trình trạng hiện tại của thiết bị gây lỗi.")
     elif green_count == 3:
-        update_hint("Nếu sự cố sau 1 tiếng cho đến 2 tiếng vẫn chưa được sự xử lí và cũng chưa được cập nhật lên group chung. Tiến hành liên hệ lại với số điện thoại ưu tiên để xác nhận lại sự cố, sau đó báo cáo lại tình hiên fleen group chung (Bấm 'Xác nhận' nếu sự cố đã được giải quyết trước thời điểm này).")
+        update_hint("Nếu sự cố sau 1 tiếng cho đến 2 tiếng vẫn chưa được sự xử lí và cũng chưa được cập nhật lên group chung. Tiến hành liên hệ lại với số điện thoại ưu tiên để xác nhận lại sự cố, sau đó báo cáo lại tình hiên lên group chung (Bấm 'Xác nhận' nếu sự cố đã được giải quyết trước thời điểm này).")
     elif green_count == 4:
         update_hint("Khi sự cố đã được giải quyết, báo cáo lên group chung để khách hàng và các bộ phận liên quan nắm thông tin (Bấm 'Xác nhận' nếu có trường hợp ngoại lệ xảy ra).")
     elif green_count == 5:
@@ -1007,10 +1058,100 @@ def reset_after_delay():
     update_hint(
         "Quy trình xử lý sự cố đang đợi"
     )
+# =========================================================
+# CLEANUP ON EXIT
+# =========================================================
+# =========================================================
+# CLEANUP ON EXIT
+# =========================================================
+def on_closing():
+    """Cancel scheduled after jobs and exit cleanly."""
+    global clock_after_id, countdown_job, schedule_after_id, reset_after_id, schedule_running, scroll_after_id
+    
+    # stop schedule loop
+    try:
+        schedule_running = False
+    except Exception:
+        pass
+        
+    # cancel known after jobs
+    try:
+        if clock_after_id:
+            root.after_cancel(clock_after_id)
+    except Exception:
+        pass
+    try:
+        if countdown_job:
+            root.after_cancel(countdown_job)
+    except Exception:
+        pass
+    try:
+        if schedule_after_id:
+            root.after_cancel(schedule_after_id)
+    except Exception:
+        pass
+    try:
+        if reset_after_id:
+            root.after_cancel(reset_after_id)
+    except Exception:
+        pass
+        
+    # Thêm phần dọn dẹp tiến trình cuộn chữ
+    try:
+        if scroll_after_id:
+            root.after_cancel(scroll_after_id)
+    except Exception:
+        pass
+        
+    try:
+        root.destroy()
+    except Exception:
+        try:
+            root.quit()
+        except Exception:
+            pass
+
+# =========================================================
+# XỬ LÝ CHỮ CHẠY (MARQUEE) CHO HINT
+# =========================================================
+scroll_after_id = None
+full_hint_text = ""
+# Cài đặt số ký tự tối đa hiển thị trên khung (Bạn có thể tăng/giảm tùy kích thước khung)
+DISPLAY_LEN = 80 
 
 def update_hint(text):
+    global scroll_after_id, full_hint_text
+    
+    # Nếu đang có hiệu ứng chạy chữ cũ thì phải hủy nó đi trước khi hiển thị chữ mới
+    if scroll_after_id is not None:
+        try:
+            root.after_cancel(scroll_after_id)
+        except Exception:
+            pass
+        scroll_after_id = None
+        
     if hint_label:
-        hint_label.config(text=text)
+        # Nếu chữ ngắn gọn, không cần chạy chữ
+        if len(text) <= DISPLAY_LEN:
+            hint_label.config(text=text)
+        else:
+            # Nếu chữ dài, thêm một khoảng trắng ở cuối để tạo sự ngắt quãng khi lặp lại
+            full_hint_text = text + " " * 30 
+            scroll_text()
+
+def scroll_text():
+    global scroll_after_id, full_hint_text
+    
+    if hint_label and hint_label.winfo_exists():
+        # Lấy một đoạn chuỗi vừa đủ độ dài khung để hiển thị
+        display_text = full_hint_text[:DISPLAY_LEN]
+        hint_label.config(text=display_text)
+        
+        # Đưa ký tự đầu tiên xuống cuối cùng để text dịch chuyển sang trái
+        full_hint_text = full_hint_text[1:] + full_hint_text[0]
+        
+        # Chạy lại hàm này sau 120ms (Giảm số này chữ sẽ chạy nhanh hơn, tăng thì chậm lại)
+        scroll_after_id = root.after(120, scroll_text)
 
 # ==== Chức năng cho nút copy và nút clear văn bản đang hiển thị trên text box ====
 def copy_text_to_clipboard():
@@ -1053,7 +1194,7 @@ def continue_clock():
 # =========================================================
 countdown_job = None
 time_left = 300
-
+reset_after_id = None
 # =========================================================
 # UPDATE TIMER
 # =========================================================
@@ -1186,7 +1327,7 @@ def reset_timer():
 timer_frame = tk.Frame(main_frame)
 timer_frame.pack(pady=(10, 0))
 
-timer_label = tk.Label(timer_frame, text="⏳Waiting Countdown⏳", font=("Arial", 16, "bold"), fg="blue")
+timer_label = tk.Label(timer_frame, text="⏳Waiting Countdown⏳", font=("Arial", 12, "bold"), fg="blue")
 timer_label.pack()
 
 countdown_job = None
@@ -1217,10 +1358,8 @@ def authenticate():
         return result["access_token"]
     else:
         raise Exception("Đăng nhập thất bại: " + str(result))
-
 # Đăng nhập Azure
 access_token = authenticate()
-
 # ==== Lấy danh sách file từ link chia sẻ ====
 def list_files_from_url(token, share_url):
     encoded_url = base64.b64encode(share_url.encode("utf-8")).decode("utf-8")
@@ -1233,7 +1372,6 @@ def list_files_from_url(token, share_url):
         return [{"id": item["id"], "name": item["name"]} for item in items if "file" in item]
     else:
         return []
-
 # === Hiển thị file văn bản từ OneDrive ===========================================================================
 # ==== LẤY DANH SÁCH FILE ONE DRIVE THEO TÊN ====
 # =========================================================
@@ -1409,12 +1547,19 @@ def set_active_child_button(btn):
     btn.config(bg="blue", fg="white")
     active_child_button = btn
 def create_list_block(parent, list_name, items, toggle_function, state):
-
     block_frame = tk.Frame(parent)
-    block_frame.pack(pady=10, anchor='w')
+    # Đổi anchor='w' thành fill='x' để khung tự động dãn ngang
+    block_frame.pack(pady=10, fill='x', padx=5) # Thêm padx=5 để nút không sát rạt vào lề
 
-    list_button = tk.Button(block_frame,text=list_name,font=("Arial", 14),width=12,command=lambda: [set_active_parent_button(list_button), toggle_function(state)])
-    list_button.pack(anchor='w')
+    # Bỏ thuộc tính width=10 để nút linh hoạt kích thước
+    list_button = tk.Button(
+        block_frame,
+        text=list_name,
+        font=("Arial", 14),
+        command=lambda: [set_active_parent_button(list_button), toggle_function(state)]
+    )
+    # Đổi anchor='w' thành fill='x' để bản thân nút tự dãn lấp đầy block_frame
+    list_button.pack(fill='x')
     state["button"] = list_button
 
 # ==== HÀM BẬT TẮT DANH SÁCH ====
@@ -1480,53 +1625,52 @@ root.after(100,lambda: switch_source("AEONGMS",btn_aeongms))
 # =========================================================
 main_container = tk.Frame(content_frame,bg="white")
 main_container.pack(fill="both",expand=True,padx=10,pady=10)
-
 # =========================================================
 # AREA CONTAINER
 # =========================================================
-area_container = tk.Frame(main_container,width=220,bg="white")
+area_container = tk.Frame(main_container,width=180,bg="white")
 area_container.pack(side="left",fill="y")
 area_container.pack_propagate(False)
-
 # =========================================================
 # SITE SEARCH FRAME
 # =========================================================
 site_search_frame = tk.Frame(area_container,bg="white")
 site_search_frame.pack(fill="x",padx=5,pady=(5, 0))
-
 # =========================================================
 # DEVICE CONTAINER
 # =========================================================
-device_container = tk.Frame(main_container,bg="white")
-device_container.pack(side="left",fill="both",expand=True,padx=(10, 0))
+# 1. Thêm width cố định (ví dụ 220 hoặc 250 tùy độ dài tên thiết bị)
+device_container = tk.Frame(main_container, width=220, bg="white")
+
+# 2. Xóa expand=True và đổi fill="both" thành fill="y" để khung chỉ kéo dài theo chiều dọc
+device_container.pack(side="left", fill="y", padx=(10, 0))
+
+# 3. Thêm dòng này để khóa cứng chiều rộng, ép thanh cuộn phải bám sát vào lề của 220px
+device_container.pack_propagate(False)
 
 # =========================================================
 # DEVICE SEARCH FRAME
 # =========================================================
 device_search_frame = tk.Frame(device_container,bg="white")
 device_search_frame.pack(fill="x",padx=5,pady=(5, 0))
-
 # =========================================================
 # SEARCH AREA
 # =========================================================
 search_parent_var = tk.StringVar()
 search_parent_entry = tk.Entry(site_search_frame,textvariable=search_parent_var,font=("Arial", 10))
 search_parent_entry.pack(fill="x",pady=5)
-
 # =========================================================
 # SEARCH DEVICE
 # =========================================================
 search_device_var = tk.StringVar()
 search_device_entry = tk.Entry(device_search_frame,textvariable=search_device_var,font=("Arial", 10))
 search_device_entry.pack(fill="x",pady=5)
-
 # =========================================================
 # AREA CANVAS
 # =========================================================
 area_canvas = tk.Canvas(area_container,bg="white",highlightthickness=0)
 area_scrollbar = tk.Scrollbar(area_container,orient="vertical",command=area_canvas.yview)
 area_scrollable_frame = tk.Frame(area_canvas,bg="white")
-
 # =========================================================
 # AREA SCROLLBAR
 # =========================================================
@@ -1542,13 +1686,31 @@ def on_area_configure(event):
         scrollregion=area_canvas.bbox("all")
     )
 area_scrollable_frame.bind("<Configure>",on_area_configure)
+
 # =========================================================
 # CREATE AREA WINDOW
 # =========================================================
-area_canvas.create_window((0, 0),window=area_scrollable_frame,anchor="nw")
+# Lưu lại ID của window bên trong canvas
+area_window_id = area_canvas.create_window((0, 0), window=area_scrollable_frame, anchor="nw")
 area_canvas.configure(yscrollcommand=area_scrollbar.set)
-area_canvas.pack(side="left",fill="both",expand=True)
-area_scrollbar.pack(side="right",fill="y")
+
+# Thứ tự pack: Scrollbar trước, Canvas sau
+area_scrollbar.pack(side="right", fill="y")
+area_canvas.pack(side="left", fill="both", expand=True)
+
+# =========================================================
+# UPDATE AREA SCROLL & AUTO WIDTH
+# =========================================================
+def on_area_configure(event):
+    area_canvas.configure(scrollregion=area_canvas.bbox("all"))
+
+def on_area_canvas_configure(event):
+    # Ép khung cuộn khu vực luôn rộng bằng Canvas chứa nó
+    area_canvas.itemconfig(area_window_id, width=event.width)
+
+area_scrollable_frame.bind("<Configure>", on_area_configure)
+area_canvas.bind("<Configure>", on_area_canvas_configure)
+
 # =========================================================
 # DEVICE CANVAS
 # =========================================================
@@ -1556,16 +1718,33 @@ device_canvas = tk.Canvas(device_container,bg="white",highlightthickness=0)
 device_scrollbar = tk.Scrollbar(device_container,orient="vertical",command=device_canvas.yview)
 device_scrollable_frame = tk.Frame(device_canvas,bg="white")
 # =========================================================
-# UPDATE DEVICE SCROLL
+# GẮN FRAME VÀO CANVAS
+# =========================================================
+# Lưu lại ID của window bên trong canvas để kiểm soát chiều rộng
+device_window_id = device_canvas.create_window((0, 0), window=device_scrollable_frame, anchor="nw")
+device_canvas.configure(yscrollcommand=device_scrollbar.set)
+# =========================================================
+# THỨ TỰ PACK CHUẨN (RẤT QUAN TRỌNG)
+# =========================================================
+# 1. BẮT BUỘC phải pack Scrollbar trước để nó luôn bám sát lề phải
+device_scrollbar.pack(side="right", fill="y")
+# 2. Pack Canvas sau để nó tự động điền vào phần không gian còn lại
+device_canvas.pack(side="left", fill="both", expand=True)
+# =========================================================
+# XỬ LÝ SỰ KIỆN CUỘN & CHỐNG TRÀN CHIỀU NGANG
 # =========================================================
 def on_device_configure(event):
-    device_canvas.configure(
-        scrollregion=device_canvas.bbox("all")
-    )
-device_scrollable_frame.bind(
-    "<Configure>",
-    on_device_configure
-)
+    # Cập nhật lại giới hạn cuộn dọc khi thêm/bớt nút thiết bị
+    device_canvas.configure(scrollregion=device_canvas.bbox("all"))
+
+def on_canvas_configure(event):
+    # Ép chiều rộng của frame chứa nút bấm bằng đúng chiều rộng của Canvas.
+    # Việc này ngăn tên thiết bị quá dài đâm xuyên qua lề phải làm hỏng thanh cuộn.
+    device_canvas.itemconfig(device_window_id, width=event.width)
+
+# Lắng nghe sự thay đổi kích thước
+device_scrollable_frame.bind("<Configure>", on_device_configure)
+device_canvas.bind("<Configure>", on_canvas_configure)
 
 # =========================================================
 # CREATE DEVICE WINDOW
@@ -1804,23 +1983,18 @@ def hide_sub_buttons(state):
 def show_sub_buttons(area_name, state, auto_select_first=False):
     # CẢI TIẾN: Reset ô tìm kiếm thiết bị về rỗng mỗi khi người dùng đổi Khu vực
     search_device_entry.delete(0, tk.END)
-
     # Xóa giao diện thiết bị cũ
     for widget in device_scrollable_frame.winfo_children():
         widget.destroy()
-        
     try:
         device_canvas.yview_moveto(0)
     except Exception:
         pass
-        
     state["buttons"].clear()
-    
     # CỐT LÕI: Làm sạch danh sách thiết bị cũ để nạp danh sách thiết bị mới
     device_items.clear() 
     devices = REPORT_FORM_MAPPING.get(area_name, {})
     first_child_btn = None
-
     for idx, (device_name, file_path) in enumerate(devices.items()):
         # Tạo block_frame cho từng thiết bị để hỗ trợ việc pack/pack_forget khi lọc
         block_frame = tk.Frame(device_scrollable_frame, bg="white")
@@ -1843,7 +2017,6 @@ def show_sub_buttons(area_name, state, auto_select_first=False):
                 handle_first_box_fill(),
                 show_text_from_local(p, start_timer_flag=True)
             ]
-            
         btn.config(command=cmd)
         btn.pack(fill="x", padx=5, pady=3)
         block_frame.pack(fill="x", padx=5, pady=3)
@@ -1852,10 +2025,8 @@ def show_sub_buttons(area_name, state, auto_select_first=False):
         device_items.append((block_frame, btn)) # Đẩy vào mảng tracking lọc dữ liệu
         if idx == 0:
             first_child_btn = btn
-
     if auto_select_first and first_child_btn:
         first_child_btn.invoke()
-        
     # Cập nhật thanh cuộn thiết bị ban đầu
     device_scrollable_frame.update_idletasks()
     device_canvas.configure(scrollregion=device_canvas.bbox("all"))
@@ -2193,39 +2364,24 @@ def create_new_window_contact(title,content=None):
     # =====================================================
     rb_confirm = tk.Radiobutton(
     confirm_frame,
-    text="Đã confirm",
-    variable=confirm_var,
+    text="Đã confirm",variable=confirm_var,
     value="confirmed",
-    bg="white",
-    font=("Arial", 11)
+    bg="white",font=("Arial", 11)
     )
 
     rb_not_confirm = tk.Radiobutton(
         confirm_frame,
-        text="Chưa confirm",
-        variable=confirm_var,
+        text="Chưa confirm",variable=confirm_var,
         value="not_confirmed",
-        bg="white",
-        font=("Arial", 11)
+        bg="white",font=("Arial", 11)
     )
 
-    rb_confirm.pack(
-        anchor="w",
-        padx=10,
-        pady=2
-    )
-
-    rb_not_confirm.pack(
-        anchor="w",
-        padx=10,
-        pady=2
-    )
-
+    rb_confirm.pack(anchor="w",padx=10,pady=2)
+    rb_not_confirm.pack(anchor="w",padx=10,pady=2)
     # =====================================================
     # INITIAL STATE
     # =====================================================
     toggle_entry_fields()
-
     # =====================================================
     # HANDLE OK
     # =====================================================
@@ -2234,27 +2390,19 @@ def create_new_window_contact(title,content=None):
         # CONFIRMED
         # =============================================
         if confirm_var.get() != "not_confirmed":
-
             new_window.destroy()
-
             return
-
         # =============================================
         # GET USER INPUT
         # =============================================
         dept = dept_entry.get().strip()
-
         device = device_entry.get().strip()
-
         status_val = status_entry.get().strip()
-
         desc = desc_entry.get(
             "1.0",
             tk.END
         ).strip()
-
         try:
-
             # =========================================
             # FIND TEMPLATE
             # =========================================
@@ -2262,18 +2410,15 @@ def create_new_window_contact(title,content=None):
             for filename in os.listdir(
                 REPORT_FORM_DIR
             ):
-
                 if (
                     CONTACT_SAMPLE_KEYWORD
                     in filename.upper()
                 ):
-
                     target_file = os.path.join(
                         REPORT_FORM_DIR,
                         filename
                     )
                     break
-
             # =========================================
             # NOT FOUND
             # =========================================
@@ -2282,7 +2427,6 @@ def create_new_window_contact(title,content=None):
                     f"Không tìm thấy "
                     f"'{CONTACT_SAMPLE_KEYWORD}'"
                 )
-
             # =========================================
             # READ TEMPLATE
             # =========================================
@@ -2302,7 +2446,6 @@ def create_new_window_contact(title,content=None):
                 line = line.replace("[status]",status_val)
                 line = line.replace("[description]",desc)
                 stripped_line = line.strip()
-
                 # =====================================
                 # SKIP EMPTY FIELD
                 # =====================================
@@ -2340,215 +2483,104 @@ def create_new_window_contact(title,content=None):
                         and not desc
                     )
                 ):
-
                     continue
-
                 if not stripped_line:
-
                     continue
-
-                replaced_lines.append(
-                    stripped_line
-                )
-
+                replaced_lines.append(stripped_line)
             # =========================================
             # FINAL CONTENT
             # =========================================
-            content = "\n".join(
-                replaced_lines
-            )
-
+            content = "\n".join(replaced_lines)
         except Exception as e:
-
             content = (
                 f"Lỗi khi xử lý "
                 f"CONTACT_FORM:\n{e}"
             )
-
         # =============================================
         # SHOW CONTENT
         # =============================================
-        output_text.config(
-            state="normal"
-        )
-
-        output_text.delete(
-            "1.0",
-            tk.END
-        )
-
-        output_text.insert(
-            tk.END,
-            content
-        )
-
-        output_text.config(
-            state="disabled"
-        )
-
+        output_text.config(state="normal")
+        output_text.delete("1.0",tk.END)
+        output_text.insert(tk.END,content)
+        output_text.config(state="disabled")
         # =============================================
         # START TIMER
         # =============================================
         try:
-
             if fill_box(1):
-
                 start_timer()
-
         except:
             pass
-
         # =============================================
         # CLOSE WINDOW
         # =============================================
         new_window.destroy()
-
     # =====================================================
     # OK BUTTON
     # =====================================================
     ok_button = tk.Button(
-
         new_window,
-
         text="OK",
-
         font=("Arial", 12, "bold"),
-
         bg="green",
-
         fg="white",
-
         width=15,
-
         command=handle_ok
     )
-
     ok_button.pack(
         pady=15
     )
-# == CỬA SỔ STATUS
-# =========================================================
+# Nhớ thêm dòng này lên đầu file code của bạn nhé:
+# from tkcalendar import DateEntry
+
+# == CỬA SỔ STATUS ==
 def create_new_window_status(title, content=None):
     new_window = tk.Toplevel(root)
     new_window.title(title)
-    new_window.geometry("600x500")
+    new_window.geometry("600x600")
     new_window.configure(bg="white")
+
     # =====================================================
     # CONFIRM STATE
     # =====================================================
-    confirm_var = tk.StringVar(
-        master=new_window,
-        value="not_confirmed"
-    )
+    confirm_var = tk.StringVar(master=new_window, value="not_confirmed")
 
     def on_confirm_change(*args):
         print("Selected:", confirm_var.get())
         toggle_entry_fields()
 
-    confirm_var.trace_add(
-        "write",
-        on_confirm_change
-    )
+    confirm_var.trace_add("write", on_confirm_change)
+
     # =====================================================
     # CONFIRM FRAME
     # =====================================================
-    confirm_frame = tk.LabelFrame(
-        new_window,
-        text="Đã confirm chưa?",
-        font=("Arial", 12, "bold")
-    )
-
-    confirm_frame.pack(
-        padx=20,
-        pady=10,
-        fill="x"
-    )
+    confirm_frame = tk.LabelFrame(new_window, text="Đã confirm chưa?", font=("Arial", 12, "bold"))
+    confirm_frame.pack(padx=20, pady=10, fill="x")
 
     # =====================================================
     # FORM FRAME
     # =====================================================
-    form_frame = tk.Frame(
-        new_window,
-        bg="white"
-    )
-
-    form_frame.pack(
-        padx=20,
-        pady=10,
-        fill="x"
-    )
+    form_frame = tk.Frame(new_window, bg="white")
+    form_frame.pack(padx=20, pady=10, fill="x")
 
     # =====================================================
     # DEPARTMENT
     # =====================================================
-    tk.Label(
-        form_frame,
-        text="Tên bộ phận:",
-        font=("Arial", 11),
-        bg="white"
-    ).grid(
-        row=0,
-        column=0,
-        sticky="w",
-        pady=5
-    )
-
-    dept_entry = tk.Entry(
-        form_frame,
-        font=("Arial", 11),
-        state="disabled"
-    )
-
-    dept_entry.grid(
-        row=0,
-        column=1,
-        pady=5,
-        sticky="ew"
-    )
+    tk.Label(form_frame, text="Tên bộ phận:", font=("Arial", 11), bg="white").grid(row=0, column=0, sticky="w", pady=5)
+    dept_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
+    dept_entry.grid(row=0, column=1, pady=5, sticky="ew")
 
     # =====================================================
     # DEVICE
     # =====================================================
-    tk.Label(
-        form_frame,
-        text="Tên thiết bị:",
-        font=("Arial", 11),
-        bg="white"
-    ).grid(
-        row=1,
-        column=0,
-        sticky="w",
-        pady=5
-    )
-
-    device_entry = tk.Entry(
-        form_frame,
-        font=("Arial", 11),
-        state="disabled"
-    )
-
-    device_entry.grid(
-        row=1,
-        column=1,
-        pady=5,
-        sticky="ew"
-    )
+    tk.Label(form_frame, text="Tên thiết bị:", font=("Arial", 11), bg="white").grid(row=1, column=0, sticky="w", pady=5)
+    device_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
+    device_entry.grid(row=1, column=1, pady=5, sticky="ew")
 
     # =====================================================
     # STATUS
     # =====================================================
-    tk.Label(
-        form_frame,
-        text="Tình trạng:",
-        font=("Arial", 11),
-        bg="white"
-    ).grid(
-        row=2,
-        column=0,
-        sticky="w",
-        pady=5
-    )
-
+    tk.Label(form_frame, text="Tình trạng:", font=("Arial", 11), bg="white").grid(row=2, column=0, sticky="w", pady=5)
     status_entry = ttk.Combobox(
         form_frame,
         font=("Arial", 11),
@@ -2562,212 +2594,87 @@ def create_new_window_status(title, content=None):
             "Không chọn"
         ]
     )
-
-    status_entry.grid(
-        row=2,
-        column=1,
-        pady=5,
-        sticky="ew"
-    )
-
+    status_entry.grid(row=2, column=1, pady=5, sticky="ew")
     status_entry.set("Không chọn")
 
     # =====================================================
-    # START TIME
+    # START DATE & TIME (SỬ DỤNG DATEENTRY)
     # =====================================================
-    tk.Label(
-        form_frame,
-        text="Thời gian bắt đầu (HH:MM):",
-        font=("Arial", 11),
-        bg="white"
-    ).grid(
-        row=3,
-        column=0,
-        sticky="w",
-        pady=5
-    )
-
-    start_time_entry = tk.Entry(
-        form_frame,
-        font=("Arial", 11),
+    tk.Label(form_frame, text="Ngày bắt đầu:", font=("Arial", 11), bg="white").grid(row=3, column=0, sticky="w", pady=5)
+    start_date_entry = DateEntry(
+        form_frame, 
+        font=("Arial", 11), 
+        width=12, 
+        background='darkblue',
+        foreground='white', 
+        borderwidth=2, 
+        date_pattern='dd/mm/yyyy', 
         state="disabled"
     )
+    start_date_entry.grid(row=3, column=1, pady=5, sticky="ew")
 
-    start_time_entry.grid(
-        row=3,
-        column=1,
-        pady=5,
-        sticky="ew"
-    )
+    tk.Label(form_frame, text="Thời gian bắt đầu (HH:MM):", font=("Arial", 11), bg="white").grid(row=4, column=0, sticky="w", pady=5)
+    start_time_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
+    start_time_entry.grid(row=4, column=1, pady=5, sticky="ew")
 
     # =====================================================
-    # END TIME
+    # END DATE & TIME (SỬ DỤNG DATEENTRY)
     # =====================================================
-    tk.Label(
-        form_frame,
-        text="Thời gian kết thúc (HH:MM):",
-        font=("Arial", 11),
-        bg="white"
-    ).grid(
-        row=4,
-        column=0,
-        sticky="w",
-        pady=5
-    )
-
-    end_time_entry = tk.Entry(
-        form_frame,
-        font=("Arial", 11),
+    tk.Label(form_frame, text="Ngày kết thúc:", font=("Arial", 11), bg="white").grid(row=5, column=0, sticky="w", pady=5)
+    end_date_entry = DateEntry(
+        form_frame, 
+        font=("Arial", 11), 
+        width=12, 
+        background='darkblue',
+        foreground='white', 
+        borderwidth=2, 
+        date_pattern='dd/mm/yyyy', 
         state="disabled"
     )
+    end_date_entry.grid(row=5, column=1, pady=5, sticky="ew")
 
-    end_time_entry.grid(
-        row=4,
-        column=1,
-        pady=5,
-        sticky="ew"
-    )
+    tk.Label(form_frame, text="Thời gian kết thúc (HH:MM):", font=("Arial", 11), bg="white").grid(row=6, column=0, sticky="w", pady=5)
+    end_time_entry = tk.Entry(form_frame, font=("Arial", 11), state="disabled")
+    end_time_entry.grid(row=6, column=1, pady=5, sticky="ew")
 
     # =====================================================
     # DESCRIPTION
     # =====================================================
-    tk.Label(
-        form_frame,
-        text="Mô tả:",
-        font=("Arial", 11),
-        bg="white"
-    ).grid(
-        row=5,
-        column=0,
-        sticky="nw",
-        pady=5
-    )
+    tk.Label(form_frame, text="Mô tả:", font=("Arial", 11), bg="white").grid(row=7, column=0, sticky="nw", pady=5)
+    desc_entry = tk.Text(form_frame, font=("Arial", 11), height=5, width=40, state="disabled")
+    desc_entry.grid(row=7, column=1, pady=5, sticky="ew")
 
-    desc_entry = tk.Text(
-        form_frame,
-        font=("Arial", 11),
-        height=5,
-        width=40,
-        state="disabled"
-    )
-
-    desc_entry.grid(
-        row=5,
-        column=1,
-        pady=5,
-        sticky="ew"
-    )
-
-    form_frame.columnconfigure(
-        1,
-        weight=1
-    )
+    form_frame.columnconfigure(1, weight=1)
 
     # =====================================================
     # ENABLE / DISABLE FIELD
     # =====================================================
     def toggle_entry_fields():
+        is_not_confirmed = (confirm_var.get() == "not_confirmed")
+        
+        state_normal = "normal" if is_not_confirmed else "disabled"
+        state_readonly = "readonly" if is_not_confirmed else "disabled"
 
-        is_not_confirmed = (
-            confirm_var.get() == "not_confirmed"
-        )
-
-        # =================================================
-        # ENABLE
-        # =================================================
-        if is_not_confirmed:
-
-            dept_entry.config(
-                state="normal"
-            )
-
-            device_entry.config(
-                state="normal"
-            )
-
-            start_time_entry.config(
-                state="normal"
-            )
-
-            end_time_entry.config(
-                state="normal"
-            )
-
-            # combobox phải readonly
-            status_entry.config(
-                state="readonly"
-            )
-
-            desc_entry.config(
-                state="normal"
-            )
-
-        # =================================================
-        # DISABLE
-        # =================================================
-        else:
-
-            dept_entry.config(
-                state="disabled"
-            )
-
-            device_entry.config(
-                state="disabled"
-            )
-
-            start_time_entry.config(
-                state="disabled"
-            )
-
-            end_time_entry.config(
-                state="disabled"
-            )
-
-            status_entry.config(
-                state="disabled"
-            )
-
-            desc_entry.config(
-                state="disabled"
-            )
+        dept_entry.config(state=state_normal)
+        device_entry.config(state=state_normal)
+        # tkcalendar dùng readonly để người dùng chỉ bấm chọn lịch chứ không gõ tay bậy bạ vào được
+        start_date_entry.config(state="readonly" if is_not_confirmed else "disabled") 
+        start_time_entry.config(state=state_normal)
+        end_date_entry.config(state="readonly" if is_not_confirmed else "disabled")
+        end_time_entry.config(state=state_normal)
+        status_entry.config(state=state_readonly)
+        desc_entry.config(state=state_normal)
 
     new_window.update_idletasks()
-
-    # =================================================
-    # UPDATE UI
 
     # =====================================================
     # RADIO BUTTON
     # =====================================================
-    rb_confirm = tk.Radiobutton(
-    confirm_frame,
-    text="Đã confirm",
-    variable=confirm_var,
-    value="confirmed",
-    bg="white",
-    font=("Arial", 11)
-    )
-
-    rb_not_confirm = tk.Radiobutton(
-        confirm_frame,
-        text="Chưa confirm",
-        variable=confirm_var,
-        value="not_confirmed",
-        bg="white",
-        font=("Arial", 11)
-    )
-
-    rb_confirm.pack(
-        anchor="w",
-        padx=10,
-        pady=2
-    )
-
-    rb_not_confirm.pack(
-        anchor="w",
-        padx=10,
-        pady=2
-    )
+    rb_confirm = tk.Radiobutton(confirm_frame, text="Đã confirm", variable=confirm_var, value="confirmed", bg="white", font=("Arial", 11))
+    rb_not_confirm = tk.Radiobutton(confirm_frame, text="Chưa confirm", variable=confirm_var, value="not_confirmed", bg="white", font=("Arial", 11))
+    
+    rb_confirm.pack(anchor="w", padx=10, pady=2)
+    rb_not_confirm.pack(anchor="w", padx=10, pady=2)
 
     toggle_entry_fields()
 
@@ -2780,259 +2687,122 @@ def create_new_window_status(title, content=None):
     # HANDLE OK
     # =====================================================
     def handle_ok():
-
-        # =============================================
-        # ĐÃ CONFIRM
-        # =============================================
         if confirm_var.get() != "not_confirmed":
-
             new_window.destroy()
-
             return
 
         # =============================================
         # GET INPUT
         # =============================================
         dept = dept_entry.get().strip()
-
         device = device_entry.get().strip()
-
         status_val = status_entry.get().strip()
-
-        start_time_str = (
-            start_time_entry.get().strip()
-        )
-
-        end_time_str = (
-            end_time_entry.get().strip()
-        )
-
-        desc = desc_entry.get(
-            "1.0",
-            tk.END
-        ).strip()
-
-        # =============================================
-        # VALIDATE REQUIRED FIELD
-        # =============================================
-        if not dept:
-
-            messagebox.showwarning(
-                "Thiếu dữ liệu",
-                "Vui lòng nhập tên bộ phận."
-            )
-
-            return
-
-        if not device:
-
-            messagebox.showwarning(
-                "Thiếu dữ liệu",
-                "Vui lòng nhập tên thiết bị."
-            )
-
-            return
-
         if status_val == "Không chọn":
+            status_val = ""
 
-            messagebox.showwarning(
-                "Thiếu dữ liệu",
-                "Vui lòng chọn tình trạng."
-            )
-
-            return
+        # Lấy giá trị chuỗi ngày theo định dạng dd/mm/yyyy từ bảng lịch
+        start_date_str = start_date_entry.get() 
+        start_time_str = start_time_entry.get().strip()
+        end_date_str = end_date_entry.get()
+        end_time_str = end_time_entry.get().strip()
+        desc = desc_entry.get("1.0", tk.END).strip()
 
         # =============================================
-        # CALCULATE PROCESS TIME
+        # CALCULATE PROCESS TIME (Only if time is provided)
         # =============================================
         time_process = ""
+        if start_time_str and end_time_str:
+            try:
+                fmt = "%d/%m/%Y %H:%M"
+                start_dt = datetime.datetime.strptime(f"{start_date_str} {start_time_str}", fmt)
+                end_dt = datetime.datetime.strptime(f"{end_date_str} {end_time_str}", fmt)
 
-        try:
+                diff_minutes = int((end_dt - start_dt).total_seconds() / 60)
 
-            if (
-                start_time_str
-                and end_time_str
-            ):
-
-                fmt = "%H:%M"
-
-                start_dt = datetime.datetime.strptime(
-                    start_time_str,
-                    fmt
-                )
-
-                end_dt = datetime.datetime.strptime(
-                    end_time_str,
-                    fmt
-                )
-
-                diff_minutes = int(
-                    (
-                        end_dt - start_dt
-                    ).total_seconds() / 60
-                )
-
-                # qua ngày
+                # Cảnh báo nếu chọn ngày kết thúc bé hơn ngày bắt đầu
                 if diff_minutes < 0:
+                    messagebox.showwarning("Lỗi logic", "Thời gian kết thúc không thể nhỏ hơn thời gian bắt đầu!")
+                    return
 
-                    diff_minutes += 24 * 60
+                time_process = f"{diff_minutes} phút ({start_time_str} {start_date_str} - {end_time_str} {end_date_str})"
+            
+            except ValueError:
+                messagebox.showwarning("Sai định dạng giờ", "Vui lòng nhập đúng định dạng giờ HH:MM (VD: 09:30)")
+                return
 
-                time_process = (
-                    f"{diff_minutes} phút "
-                    f"({start_time_str} - {end_time_str})"
-                )
-
-        except ValueError:
-
-            messagebox.showwarning(
-                "Sai định dạng giờ",
-                "Vui lòng nhập đúng định dạng HH:MM"
-            )
-
-            return
-
+        # =========================================
+        # FIND & READ TEMPLATE
+        # =========================================
         try:
-
-            # =========================================
-            # FIND TEMPLATE
-            # =========================================
             target_file = None
-
-            for filename in os.listdir(
-                REPORT_FORM_DIR
-            ):
-
-                if (
-                    CONFIRM_SAMPLE_KEYWORD
-                    in filename.upper()
-                ):
-
-                    target_file = os.path.join(
-                        REPORT_FORM_DIR,
-                        filename
-                    )
-
+            for filename in os.listdir(REPORT_FORM_DIR):
+                if CONFIRM_SAMPLE_KEYWORD in filename.upper():
+                    target_file = os.path.join(REPORT_FORM_DIR, filename)
                     break
 
-            # =========================================
-            # TEMPLATE NOT FOUND
-            # =========================================
             if not target_file:
+                raise FileNotFoundError(f"Không tìm thấy file '{CONFIRM_SAMPLE_KEYWORD}'")
 
-                raise FileNotFoundError(
-                    f"Không tìm thấy file "
-                    f"'{CONFIRM_SAMPLE_KEYWORD}'"
-                )
-
-            # =========================================
-            # READ TEMPLATE
-            # =========================================
-            with open(
-                target_file,
-                "r",
-                encoding="utf-8",
-                errors="ignore"
-            ) as f:
-
+            with open(target_file, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
 
             # =========================================
-            # REPLACE PLACEHOLDER
+            # REPLACE PLACEHOLDER 
+            # Dùng DELETE_THIS_LINE nếu trường bị trống
             # =========================================
+            marker = "DELETE_THIS_LINE"
             replacements = {
-
-                "[tilte]": dept,
-                "[title]": dept,
-                "[department]": dept,
-                "[device]": device,
-                "[status]": status_val,
-                "[time_process]": time_process,
-                "[description]": desc
+                "[tilte]": dept if dept else marker,
+                "[title]": dept if dept else marker,
+                "[department]": dept if dept else marker,
+                "[device]": device if device else marker,
+                "[status]": status_val if status_val else marker,
+                "[time_process]": time_process if time_process else marker,
+                "[description]": desc if desc else marker
             }
 
             for key, value in replacements.items():
-
-                content = content.replace(
-                    key,
-                    value
-                )
+                content = content.replace(key, value)
 
             # =========================================
-            # REMOVE EMPTY LINE
+            # XÓA CÁC DÒNG CHỨA DỮ LIỆU TRỐNG
             # =========================================
             cleaned_lines = []
-
             for line in content.splitlines():
-
+                if marker in line:
+                    continue  
                 if line.strip():
+                    cleaned_lines.append(line.strip())
 
-                    cleaned_lines.append(
-                        line.strip()
-                    )
-
-            content = "\n".join(
-                cleaned_lines
-            )
+            content = "\n".join(cleaned_lines)
 
         except Exception as e:
-
-            messagebox.showerror(
-                "Lỗi",
-                f"Lỗi xử lý file:\n{e}"
-            )
-
+            messagebox.showerror("Lỗi", f"Lỗi xử lý file:\n{e}")
             return
 
         # =============================================
         # SHOW CONTENT
         # =============================================
-        output_text.config(
-            state="normal"
-        )
-
-        output_text.delete(
-            "1.0",
-            tk.END
-        )
-
-        output_text.insert(
-            tk.END,
-            content
-        )
-
-        output_text.config(
-            state="disabled"
-        )
+        output_text.config(state="normal")
+        output_text.delete("1.0", tk.END)
+        output_text.insert(tk.END, content)
+        output_text.config(state="disabled")
 
         # =============================================
-        # FILL BOX
+        # FILL BOX & CLOSE WINDOW
         # =============================================
         fill_box(2)
-
-        # =============================================
-        # CLOSE WINDOW
-        # =============================================
         new_window.destroy()
 
     # =====================================================
     # OK BUTTON
     # =====================================================
-    ok_button = tk.Button(
-        new_window,
-        text="OK",
-        font=("Arial", 12, "bold"),
-        bg="green",
-        fg="white",
-        command=handle_ok
-    )
+    ok_button = tk.Button(new_window, text="OK", font=("Arial", 12, "bold"), bg="green", fg="white", command=handle_ok)
+    ok_button.pack(pady=10)
 
-    ok_button.pack(
-        pady=10
-    )
 # == Cửa sổ note ==
 schedule_running = False
 schedule_after_id = None
-
 def create_new_window_note():
     # Thư mục lưu dữ liệu
     DATA_DIR = NOTE_ARCHIVE_DIR
@@ -3523,96 +3293,77 @@ def create_new_window_image_daviteq(title):
     # =====================================================
     # BUILD IMAGE MAPPING FROM LOCAL
     # =====================================================
+    # =====================================================
+    # BUILD IMAGE MAPPING FROM LOCAL (ĐỒNG BỘ HAI NHÁNH THƯ MỤC)
+    # =====================================================
     def build_image_mapping():
-
+        # Cấu hình danh sách thư mục cần quét cho từng danh mục cha
         image_roots = {
-            "LAYOUT": IMAGE_LAYOUT_ARCHIVE_DIR,
-            "GATEWAY": IMAGE_GATEWAY_ARCHIVE_DIR,
-            "SENSOR": IMAGE_SENSOR_ARCHIVE_DIR,
-            "ALARMPOINT": IMAGE_AL_ARCHIVE_DIR
+            "LAYOUT": [AEONGMS_IMAGE_LAYOUT_ARCHIVE_DIR, MAXVALU_IMAGE_LAYOUT_ARCHIVE_DIR],
+            "GATEWAY": [AEONGMS_IMAGE_GATEWAY_ARCHIVE_DIR, MAXVALU_IMAGE_GATEWAY_ARCHIVE_DIR],
+            "SENSOR": [AEONGMS_IMAGE_SENSOR_ARCHIVE_DIR, MAXVALU_IMAGE_SENSOR_ARCHIVE_DIR],
+            "ALARMPOINT": [AEONGMS_IMAGE_AL_ARCHIVE_DIR, MAXVALU_IMAGE_AL_ARCHIVE_DIR]
         }
 
         result = {}
-
-        for category, folder in image_roots.items():
-
+        for category, folders_list in image_roots.items():
             result[category] = {}
-
-            if not os.path.exists(folder):
-                continue
-
-            for filename in os.listdir(folder):
-
-                filepath = os.path.join(folder, filename)
-
-                if not os.path.isfile(filepath):
+            
+            # Duyệt qua từng thư mục cấu hình (quét cả GMS lẫn Maxvalu)
+            for folder in folders_list:
+                if not os.path.exists(folder):
                     continue
-
-                # bỏ extension
-                name_without_ext = os.path.splitext(filename)[0]
-
-                # split theo "_"
-                parts = name_without_ext.split("_")
-
-                # =================================================
-                # FORMAT:
-                # NVL_DELICA
-                # TQB_BAKERY
-                # =================================================
-                if len(parts) < 2:
-                    continue
-
-                area = parts[0].upper()
-
-                device = "_".join(parts[1:])
-
-                if area not in result[category]:
-                    result[category][area] = []
-
-                result[category][area].append({
-                    "device": device,
-                    "path": filepath,
-                    "filename": filename
-                })
-
-        # SORT DEVICE
+                for filename in os.listdir(folder):
+                    filepath = os.path.join(folder, filename)
+                    if not os.path.isfile(filepath):
+                        continue
+                        
+                    # Bỏ extension (.png, .jpg...)
+                    name_without_ext = os.path.splitext(filename)[0]
+                    # Split theo ký tự "_"
+                    parts = name_without_ext.split("_")
+                    
+                    # Định dạng chuẩn: NVL_DELICA hoặc TQB_BAKERY
+                    if len(parts) < 2:
+                        continue
+                        
+                    area = parts[0].upper()
+                    device = "_".join(parts[1:])
+                    
+                    if area not in result[category]:
+                        result[category][area] = []
+                        
+                    result[category][area].append({
+                        "device": device,
+                        "path": filepath,
+                        "filename": filename
+                    })
+                    
+        # Sắp xếp lại thứ tự thiết bị (Device) theo Alphabet để hiển thị đẹp mắt
         for category in result:
             for area in result[category]:
                 result[category][area].sort(
                     key=lambda x: x["device"]
                 )
-
         return result
-
     # =====================================================
     # SHOW IMAGES
     # =====================================================
     def show_images(image_list):
-
         for widget in image_frame.winfo_children():
             widget.destroy()
-
         for idx, item in enumerate(image_list):
-
             try:
-
                 img_path = item["path"]
-
                 device_name = item["device"]
-
                 img = Image.open(img_path)
-
                 img.thumbnail(
                     (140, 100),
                     Image.Resampling.LANCZOS
                 )
-
                 photo = ImageTk.PhotoImage(img)
-
                 row = idx // max_columns
-
                 col = idx % max_columns
-
                 # =============================================
                 # ITEM FRAME
                 # =============================================
@@ -3620,14 +3371,12 @@ def create_new_window_image_daviteq(title):
                     image_frame,
                     bg="white"
                 )
-
                 item_frame.grid(
                     row=row,
                     column=col,
                     padx=10,
                     pady=10
                 )
-
                 # =============================================
                 # IMAGE BUTTON
                 # =============================================
@@ -3639,9 +3388,7 @@ def create_new_window_image_daviteq(title):
                 )
 
                 label_img.image = photo
-
                 label_img.pack()
-
                 # =============================================
                 # DEVICE LABEL
                 # =============================================
@@ -3657,7 +3404,6 @@ def create_new_window_image_daviteq(title):
                 label_text.pack(
                     pady=(5, 0)
                 )
-
                 # =============================================
                 # OPEN LARGE IMAGE
                 # =============================================
@@ -3666,47 +3412,30 @@ def create_new_window_image_daviteq(title):
                     lambda e, p=img_path:
                         open_large_image(p)
                 )
-
             except Exception as e:
-
                 print(
                     f"❌ Lỗi xử lý ảnh: {e}"
                 )
-
     # =====================================================
     # OPEN LARGE IMAGE
     # =====================================================
     def open_large_image(img_path):
-
         try:
-
             img = Image.open(img_path)
-
             # scale 50%
             scale_factor = 0.5
-
             new_size = (
                 int(img.width * scale_factor),
                 int(img.height * scale_factor)
             )
-
             img_resized = img.resize(
                 new_size,
                 Image.Resampling.LANCZOS
             )
-
             photo = ImageTk.PhotoImage(img_resized)
-
             popup = tk.Toplevel(new_window)
-
-            popup.title(
-                "DAVITEQ IMAGE DATA"
-            )
-
-            popup.configure(
-                bg="white"
-            )
-
+            popup.title("DAVITEQ IMAGE DATA")
+            popup.configure(bg="white")
             lbl = tk.Label(
                 popup,
                 image=photo,
@@ -3978,7 +3707,6 @@ def create_new_window_image_daviteq(title):
             first_sub_btn,
             first_image_list
         )
-
 # == Cửa sổ tài liệu ==
 def create_documentary_viewer(token, share_url):
     files = list_files_from_url(token, share_url)  # Lấy file từ OneDrive Azure
@@ -3989,63 +3717,104 @@ def create_documentary_viewer(token, share_url):
         tags = re.findall(r'\(([^)]+)\)', filename)
         return ", ".join(tags) if tags else "Khác"
 
-    def update_table(*args):
-        keyword = search_var.get().lower().strip()
-        current_mode = mode.get()
+    def update_table(event=None):
+        # 1. Lấy trực tiếp từ Entry thay vì StringVar để tránh độ trễ
+        keyword = entry_search.get().strip().lower()
 
-        tree.delete(*tree.get_children())
-        new_filtered = []
+        text_widget.config(state="normal")
+        text_widget.delete("1.0", tk.END)
 
-        if current_mode == "name":
-            new_filtered = [f for f in files if keyword in f["name"].lower()]
-        elif current_mode == "type":
-            new_filtered = [f for f in files if keyword in extract_tags(f["name"]).lower()]
-        elif current_mode == "number":
-            if keyword.isdigit():
-                idx = int(keyword)
-                if 1 <= idx <= len(files):
-                    new_filtered = [files[idx - 1]]
-            else:
-                return
-        else:
-            new_filtered = files.copy()
+        # 2. Thuật toán phân loại Tuple (Chắc chắn 100% đẩy lên đầu)
+        def get_sort_key(file_obj):
+            name = file_obj["name"].lower()
+            if not keyword:
+                return (0, name) # Trạng thái gốc: Xếp theo tên
+            
+            # Nếu tên chứa toàn bộ cụm từ khóa -> Đẩy lên Top 1 (hệ số -2)
+            if keyword in name:
+                return (-2, name.find(keyword), name)
+                
+            # Nếu tên chứa một phần từ khóa -> Đẩy lên Top 2 (hệ số -1)
+            words = keyword.split()
+            match_count = sum(1 for w in words if w in name)
+            if match_count > 0:
+                return (-1, -match_count, name)
+                
+            # Không liên quan -> Bỏ xuống cuối (hệ số 0)
+            return (0, 0, name)
 
-        for idx, f in enumerate(new_filtered, start=1):
-            tag_label = extract_tags(f["name"])
-            filepath = os.path.join(DOCUMENTARY_ARCHIVE_DIR, f["name"])
-
-            is_downloaded = os.path.exists(filepath)
-            status_text = "✅ Đã tải" if is_downloaded else "❌ Chưa tải"
-            tag = "downloaded" if is_downloaded else "not_downloaded"
-
-            tree.insert("", "end", values=(idx, tag_label, f["name"], "⇩", status_text), tags=(tag,))
-
+        # Sắp xếp danh sách với thuật toán mới
+        sorted_files = sorted(files, key=get_sort_key)
         filtered_files.clear()
-        filtered_files.extend(new_filtered)
+        filtered_files.extend(sorted_files)
+
+        # Chèn Header (Cố định ở dòng 1)
+        header = f"{'STT':<5}{'LOẠI':<15}{'TÊN FILE'}\n"
+        text_widget.insert(tk.END, header, "header")
+
+        # Chèn danh sách File
+        for idx, file in enumerate(sorted_files, start=1):
+            filename = file["name"]
+            tag_label = extract_tags(filename)
+            
+            filepath = os.path.join(DOCUMENTARY_ARCHIVE_DIR, filename)
+            downloaded = os.path.exists(filepath)
+            row_tag = "downloaded" if downloaded else "not_downloaded"
+
+            line = f"{idx:<5}{tag_label:<15}{filename}\n"
+            
+            # 3. Tính chính xác dòng hiện tại (Header = 1, file đầu tiên = 2, ...)
+            line_num = idx + 1
+            
+            # Chèn dòng và áp dụng màu nền
+            text_widget.insert(tk.END, line, row_tag)
+
+            # 4. Quét và Highlight từ khóa
+            if keyword:
+                words = keyword.split()
+                filename_lower = filename.lower()
+                prefix_len = len(f"{idx:<5}{tag_label:<15}")
+
+                for word in words:
+                    for match in re.finditer(re.escape(word), filename_lower):
+                        real_start = prefix_len + match.start()
+                        real_end = prefix_len + match.end()
+                        
+                        text_widget.tag_add(
+                            "highlight",
+                            f"{line_num}.{real_start}",
+                            f"{line_num}.{real_end}"
+                        )
+
+        # 5. ÉP THẺ HIGHLIGHT NỔI LÊN TRÊN CÙNG ĐỂ KHÔNG BỊ MÀU NỀN CHE MẤT
+        text_widget.tag_raise("highlight")
+        text_widget.config(state="disabled")
 
     def handle_download(event):
-        selected = tree.focus()
-        if not selected:
-            return
-        item = tree.item(selected)
-        index = int(item['values'][0]) - 1
-        file = filtered_files[index]
+        index = text_widget.index("@%d,%d" % (event.x, event.y))
+        line = int(index.split(".")[0])
 
-        # Gọi hàm download_file gốc (không sửa)
-        temp_path = download_file(token, file['id'], file['name'])
+        if line <= 1:
+            return
+
+        file_index = line - 2
+        if file_index < 0 or file_index >= len(filtered_files):
+            return
+
+        file = filtered_files[file_index]
+        temp_path = download_file(token, file["id"], file["name"])
+
         if not temp_path:
             messagebox.showerror("Lỗi", f"Tải file {file['name']} thất bại!")
             return
 
-        # Đích: thư mục DOCUMENTARY_ARCHIVE_DIR
-        final_path = os.path.join(DOCUMENTARY_ARCHIVE_DIR, file['name'])
-    
-        # Nếu file đã tồn tại thì ghi đè
+        final_path = os.path.join(DOCUMENTARY_ARCHIVE_DIR, file["name"])
         try:
-            shutil.move(temp_path, final_path)  # chuyển sang thư mục đích
-        except Exception as e:
-            shutil.copy2(temp_path, final_path)  # fallback copy
+            shutil.move(temp_path, final_path)
+        except:
+            shutil.copy2(temp_path, final_path)
             os.remove(temp_path)
+
         update_table()
 
     root = tk.Tk()
@@ -4067,45 +3836,38 @@ def create_documentary_viewer(token, share_url):
                                 command=lambda: os.startfile(DOCUMENTARY_ARCHIVE_DIR))
     btn_open_folder.pack(side="right", padx=5)
 
+    # Ràng buộc sự kiện nhấn phím và nhấn Enter
     entry_search.bind("<KeyRelease>", update_table)
-
-    # ==== Bộ lọc tìm kiếm ====
-    frame_filter = tk.Frame(root)
-    frame_filter.pack(pady=5)
-
-    mode = tk.StringVar(value="name")
-    tk.Radiobutton(frame_filter, text="🔍 Tìm theo tên", variable=mode, value="name", command=update_table).pack(side="left", padx=10)
-    tk.Radiobutton(frame_filter, text="🔍 Tìm theo loại", variable=mode, value="type", command=update_table).pack(side="left", padx=10)
-    tk.Radiobutton(frame_filter, text="🔍 Tìm theo stt", variable=mode, value="number", command=update_table).pack(side="left", padx=10)
+    entry_search.bind("<Return>", update_table)
 
     # ==== Bảng file ====
     frame_table = tk.Frame(root)
     frame_table.pack(pady=10, fill="both", expand=True)
 
-    columns = ("STT", "Loại", "Tên", "Tải", "Trạng thái")
-    tree = ttk.Treeview(frame_table, columns=columns, show="headings", height=20)
+    scrollbar = tk.Scrollbar(frame_table)
+    scrollbar.pack(side="right", fill="y")
 
-    tree.heading("STT", text="STT")
-    tree.column("STT", width=50, anchor="center")
+    text_widget = tk.Text(
+        frame_table,
+        wrap="none",
+        font=("Consolas", 10),
+        yscrollcommand=scrollbar.set
+    )
+    text_widget.pack(fill="both", expand=True)
+    scrollbar.config(command=text_widget.yview)
 
-    tree.heading("Loại", text="Loại")
-    tree.column("Loại", width=120, anchor="center")
+    text_widget.bind("<Double-Button-1>", handle_download)
 
-    tree.heading("Tên", text="Tên")
-    tree.column("Tên", width=400, anchor="w")
-
-    tree.heading("Tải", text="Tải về")
-    tree.column("Tải", width=80, anchor="center")
-
-    tree.heading("Trạng thái", text="Trạng thái")
-    tree.column("Trạng thái", width=100, anchor="center")
-
-    # Cấu hình màu thẻ
-    tree.tag_configure("downloaded", background="#d0f0c0")  # Xanh nhạt
-    tree.tag_configure("not_downloaded", background="#f7c6c7")  # Đỏ nhạt
-
-    tree.pack(fill="both", expand=True)
-    tree.bind("<Double-1>", handle_download)
+    # ==== Cấu hình màu sắc ====
+    text_widget.tag_config(
+        "highlight",
+        background="yellow",
+        foreground="black", # Đổi sang chữ đen trên nền vàng để dễ đọc hơn
+        font=("Consolas", 10, "bold")
+    )
+    text_widget.tag_config("downloaded", background="#d0f0c0")
+    text_widget.tag_config("not_downloaded", background="#f7c6c7")
+    text_widget.tag_config("header", font=("Consolas", 10, "bold"))
 
     update_table()
     root.mainloop()
@@ -4366,6 +4128,7 @@ length=300
     ).pack(pady=10)
 # ==== CHẠY Giao diện hỏi người dùng có muốn đồng bộ hay ko đồng bọ trước khi vào app chính ====
 show_startup_window()
-
 # ==== CHẠY ỨNG DỤNG ====
+root.protocol("WM_DELETE_WINDOW", on_closing)
 root.mainloop()
+
